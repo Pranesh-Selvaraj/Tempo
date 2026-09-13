@@ -1,4 +1,10 @@
-import { nextRotation } from '@tempo/shared-types';
+import {
+  ROTATION_POSITIONS,
+  getFormationRoster,
+  nextRotation,
+  type Formation,
+  type PlayerRole,
+} from '@tempo/shared-types';
 
 export type TeamSide = 'home' | 'away';
 
@@ -32,6 +38,7 @@ export interface TeamPlayer {
   name: string;
   number: string;
   starter: boolean;
+  role: PlayerRole;
 }
 
 export interface StaffMember {
@@ -65,6 +72,7 @@ export const STAFF_ROLES = [
 
 export interface MatchState {
   config: MatchConfig;
+  formation: Formation;
   homeScore: number;
   awayScore: number;
   sets: SetScore[];
@@ -77,7 +85,7 @@ export interface MatchState {
   events: MatchEvent[];
   winner: TeamSide | null;
   rosters: { home: TeamRoster; away: TeamRoster };
-  lineups: { home: string[]; away: string[] };
+  lineups: { home: (string | null)[]; away: (string | null)[] };
   subEvents: SubEvent[];
 }
 
@@ -88,17 +96,112 @@ export function emptyRoster(): TeamRoster {
   return { players: [], staff: [] };
 }
 
-export function createPlayer(name: string, number: string, starter: boolean): TeamPlayer {
-  return { id: crypto.randomUUID(), name, number, starter };
+export function emptyLineup(): (string | null)[] {
+  return Array.from({ length: 6 }, () => null);
+}
+
+export function createPlayer(
+  name: string,
+  number: string,
+  starter: boolean,
+  role: PlayerRole = 'outside',
+): TeamPlayer {
+  return { id: crypto.randomUUID(), name, number, starter, role };
 }
 
 export function createStaff(name: string, role: string): StaffMember {
   return { id: crypto.randomUUID(), name, role };
 }
 
+export function positionLabel(position: number): string {
+  return ROTATION_POSITIONS.find((spot) => spot.position === position)?.label ?? `Position ${position}`;
+}
+
+export function lineupIndexForPosition(rotation: number, position: number): number {
+  return (((position - rotation) % 6) + 6) % 6;
+}
+
+export function formationRoles(formation: Formation): PlayerRole[] {
+  return getFormationRoster(formation, false).map((player) => player.role);
+}
+
+/** Role the formation assigns to a position slot for the current rotation. */
+export function expectedRoleAt(state: MatchState, side: TeamSide, position: number): PlayerRole {
+  const rotation = side === 'home' ? state.homeRotation : state.awayRotation;
+  const index = lineupIndexForPosition(rotation, position);
+  return formationRoles(state.formation)[index] ?? 'outside';
+}
+
+/** Keep each starter flag in sync with the six players who are actually on court. */
+export function syncStarters(state: MatchState, side: TeamSide): MatchState {
+  const lineup = state.lineups[side];
+  const roster = state.rosters[side];
+  return {
+    ...state,
+    rosters: {
+      ...state.rosters,
+      [side]: {
+        ...roster,
+        players: roster.players.map((player) => ({
+          ...player,
+          starter: lineup.includes(player.id),
+        })),
+      },
+    },
+  };
+}
+
+/** Place a player into a court position, swapping if they already occupy another slot. */
+export function assignPosition(
+  state: MatchState,
+  side: TeamSide,
+  position: number,
+  playerId: string | null,
+): MatchState {
+  const rotation = side === 'home' ? state.homeRotation : state.awayRotation;
+  const index = lineupIndexForPosition(rotation, position);
+  const lineup = [...state.lineups[side]];
+  while (lineup.length < 6) lineup.push(null);
+
+  if (playerId === null) {
+    lineup[index] = null;
+  } else {
+    const existing = lineup.indexOf(playerId);
+    if (existing !== -1 && existing !== index) {
+      lineup[existing] = lineup[index] ?? null;
+      lineup[index] = playerId;
+    } else {
+      lineup[index] = playerId;
+    }
+  }
+
+  return syncStarters({ ...state, lineups: { ...state.lineups, [side]: lineup } }, side);
+}
+
+/** Apply a formation's role pattern to the six on-court players, by rotation order. */
+export function applyFormation(state: MatchState, formation: Formation): MatchState {
+  const roles = formationRoles(formation);
+  const rosters = { ...state.rosters };
+  for (const side of ['home', 'away'] as TeamSide[]) {
+    const lineup = state.lineups[side];
+    rosters[side] = {
+      ...state.rosters[side],
+      players: state.rosters[side].players.map((player) => {
+        const index = lineup.indexOf(player.id);
+        if (index === -1) return player;
+        return { ...player, role: roles[index] ?? player.role };
+      }),
+    };
+  }
+  return { ...state, formation, rosters };
+}
+
 /** The on-court six, in rotation order (index 0 starts at position 1). */
-export function buildLineup(roster: TeamRoster): string[] {
-  return roster.players.filter((player) => player.starter).slice(0, 6).map((player) => player.id);
+export function buildLineup(roster: TeamRoster): (string | null)[] {
+  const starters = roster.players.filter((player) => player.starter).slice(0, 6);
+  const lineup: (string | null)[] = starters.map((player) => player.id);
+  while (lineup.length < 6) lineup.push(null);
+  return lineup;
 }
 
 export function createMatch(config: Partial<MatchConfig> = {}): MatchState {
@@ -108,6 +211,7 @@ export function createMatch(config: Partial<MatchConfig> = {}): MatchState {
       awayName: config.awayName ?? 'Away',
       bestOf: config.bestOf ?? 5,
     },
+    formation: '5-1',
     homeScore: 0,
     awayScore: 0,
     sets: [],
@@ -120,7 +224,7 @@ export function createMatch(config: Partial<MatchConfig> = {}): MatchState {
     events: [],
     winner: null,
     rosters: { home: emptyRoster(), away: emptyRoster() },
-    lineups: { home: [], away: [] },
+    lineups: { home: emptyLineup(), away: emptyLineup() },
     subEvents: [],
   };
 }
@@ -320,6 +424,7 @@ export interface PlayerStat {
   side: TeamSide;
   name: string;
   number: string;
+  role: PlayerRole;
   servicePoints: number;
   ralliesOnCourt: number;
   subsIn: number;
@@ -335,6 +440,7 @@ export function computePlayerStats(state: MatchState): PlayerStat[] {
         side,
         name: player.name || `#${player.number}`,
         number: player.number,
+        role: player.role,
         servicePoints: 0,
         ralliesOnCourt: 0,
         subsIn: 0,
@@ -343,7 +449,7 @@ export function computePlayerStats(state: MatchState): PlayerStat[] {
     }
   }
 
-  const lineups: { home: string[]; away: string[] } = {
+  const lineups: { home: (string | null)[]; away: (string | null)[] } = {
     home: [...state.lineups.home],
     away: [...state.lineups.away],
   };

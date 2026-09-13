@@ -11,6 +11,13 @@ import {
   UserPlus,
   Users,
 } from 'lucide-react';
+import {
+  FORMATION_INFO,
+  FORMATIONS,
+  ROLE_LABELS,
+  type Formation,
+  type PlayerRole,
+} from '@tempo/shared-types';
 import { cn } from '../../lib/cn';
 import { ThemeSwitcher } from '../../components/ThemeSwitcher';
 import { Button, Field, Modal, Panel, Segmented, Select, TextInput } from '../../components/ui';
@@ -22,15 +29,26 @@ import {
   computeAnalytics,
   computePlayerStats,
   currentSetNumber,
+  expectedRoleAt,
   isDecidingSet,
   matchPoint,
   maxSets,
+  playerAtPosition,
+  positionLabel,
   rotationPositionLabel,
   setTarget,
   setsWon,
   switchSidesAt,
   type TeamSide,
 } from './match';
+
+const ROLE_SHORT: Record<PlayerRole, string> = {
+  setter: 'S',
+  outside: 'OH',
+  middle: 'MB',
+  opposite: 'OPP',
+  libero: 'L',
+};
 
 const TEAM_STYLES: Record<TeamSide, { text: string; border: string; button: string; glow: string }> = {
   home: {
@@ -150,9 +168,12 @@ function TeamPanel({ side, onSub }: { side: TeamSide; onSub: (side: TeamSide) =>
 
       {match.rosters[side].players.length > 0 && (
         <p className="text-[10px] text-slate-500">
-          {match.lineups[side].length} on court ·{' '}
-          {Math.max(0, match.rosters[side].players.length - match.lineups[side].length)} bench ·{' '}
-          {match.rosters[side].staff.length} staff
+          {match.lineups[side].filter(Boolean).length} on court ·{' '}
+          {Math.max(
+            0,
+            match.rosters[side].players.length - match.lineups[side].filter(Boolean).length,
+          )}{' '}
+          bench · {match.rosters[side].staff.length} staff
         </p>
       )}
     </div>
@@ -285,6 +306,9 @@ function PlayerStatsSection() {
                   {rows.map((stat) => (
                     <tr key={stat.playerId} className="border-t border-white/5">
                       <td className="py-1 text-slate-300">
+                        <span className="mr-1 text-[9px] font-semibold uppercase text-slate-500">
+                          {ROLE_SHORT[stat.role]}
+                        </span>
                         {stat.number ? `#${stat.number} ` : ''}
                         {stat.name}
                       </td>
@@ -308,6 +332,225 @@ function PlayerStatsSection() {
   );
 }
 
+function PositionForm({
+  side,
+  position,
+  onClose,
+}: {
+  side: TeamSide;
+  position: number;
+  onClose: () => void;
+}) {
+  const match = useScorecardStore((state) => state.match);
+  const savePositionPlayer = useScorecardStore((state) => state.savePositionPlayer);
+  const assignPosition = useScorecardStore((state) => state.assignPosition);
+  const rotation = side === 'home' ? match.homeRotation : match.awayRotation;
+  const roster = match.rosters[side];
+  const currentId = playerAtPosition(match, side, rotation, position);
+  const current = currentId ? roster.players.find((player) => player.id === currentId) : undefined;
+  const expected = expectedRoleAt(match, side, position);
+
+  const [name, setName] = useState(current?.name ?? '');
+  const [number, setNumber] = useState(current?.number ?? '');
+  const [role, setRole] = useState<PlayerRole>(current?.role ?? expected);
+
+  const others = roster.players.filter((player) => player.id !== currentId);
+
+  return (
+    <div className="space-y-4">
+      <p className="text-[11px] text-slate-400">
+        Formation <span className="font-semibold text-slate-200">{match.formation}</span> expects a{' '}
+        <span className="text-sky-300">{ROLE_LABELS[expected]}</span> in this slot.
+      </p>
+
+      <div className="grid grid-cols-[80px_1fr] gap-2">
+        <Field label="Jersey">
+          <TextInput
+            value={number}
+            autoFocus
+            placeholder="#"
+            className="text-center"
+            onChange={(event) => setNumber(event.target.value)}
+          />
+        </Field>
+        <Field label="Name">
+          <TextInput
+            value={name}
+            placeholder="Player name"
+            onChange={(event) => setName(event.target.value)}
+          />
+        </Field>
+      </div>
+
+      <Field label="Player type">
+        <Select value={role} onChange={(event) => setRole(event.target.value as PlayerRole)}>
+          {(Object.keys(ROLE_LABELS) as PlayerRole[]).map((value) => (
+            <option key={value} value={value}>
+              {ROLE_LABELS[value]}
+            </option>
+          ))}
+        </Select>
+      </Field>
+
+      {others.length > 0 && (
+        <div>
+          <p className="field-label mb-1">Assign an existing player</p>
+          <div className="scroll-thin flex max-h-32 flex-wrap gap-1 overflow-y-auto">
+            {others.map((player) => {
+              const index = match.lineups[side].indexOf(player.id);
+              const chip = index === -1 ? 'Bench' : `P${((index + rotation - 1) % 6) + 1}`;
+              return (
+                <button
+                  key={player.id}
+                  type="button"
+                  onClick={() => {
+                    assignPosition(side, position, player.id);
+                    onClose();
+                  }}
+                  className="chip hover:border-sky-400/40 hover:text-sky-100"
+                >
+                  {player.number ? `#${player.number} ` : ''}
+                  {player.name || 'Unnamed'} · {chip}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center justify-end gap-2">
+        {current && (
+          <Button
+            variant="danger"
+            onClick={() => {
+              assignPosition(side, position, null);
+              onClose();
+            }}
+          >
+            Clear position
+          </Button>
+        )}
+        <Button onClick={onClose}>Cancel</Button>
+        <Button
+          variant="primary"
+          onClick={() => {
+            savePositionPlayer(side, position, {
+              name: name.trim(),
+              number: number.trim(),
+              role,
+            });
+            onClose();
+          }}
+        >
+          Save player
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function CourtPositionMap({ side }: { side: TeamSide }) {
+  const match = useScorecardStore((state) => state.match);
+  const [editing, setEditing] = useState<number | null>(null);
+  const rotation = side === 'home' ? match.homeRotation : match.awayRotation;
+  const roster = match.rosters[side];
+  const teamName = side === 'home' ? match.config.homeName : match.config.awayName;
+  const serving = match.serving === side && !match.winner;
+  const rows = [
+    [4, 3, 2],
+    [5, 6, 1],
+  ];
+
+  return (
+    <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
+      <div className="mb-2 flex flex-wrap items-center gap-1.5">
+        <span
+          className={cn(
+            'h-2.5 w-2.5 rounded-full',
+            side === 'home' ? 'bg-cyan-300' : 'bg-orange-300',
+          )}
+          style={serving ? { boxShadow: TEAM_STYLES[side].glow } : undefined}
+        />
+        <p className={cn('text-xs font-semibold', side === 'home' ? 'text-cyan-300' : 'text-orange-300')}>
+          {teamName}
+        </p>
+        <span className="chip">{match.formation}</span>
+        <span className="chip">
+          Rotation {rotation} · {rotationPositionLabel(rotation)}
+        </span>
+        <span className="ml-auto text-[10px] text-slate-500">Tap a position to edit</span>
+      </div>
+
+      <div className="space-y-1">
+        {rows.map((row, rowIndex) => (
+          <div key={rowIndex} className="grid grid-cols-3 gap-1">
+            {row.map((position) => {
+              const id = playerAtPosition(match, side, rotation, position);
+              const player = id ? roster.players.find((item) => item.id === id) : undefined;
+              const isServer = serving && position === 1;
+              return (
+                <button
+                  key={position}
+                  type="button"
+                  onClick={() => setEditing(position)}
+                  aria-label={`${teamName} P${position} ${positionLabel(position)}${
+                    player ? ` — #${player.number} ${player.name || 'Unnamed'}` : ' — empty'
+                  }`}
+                  className={cn(
+                    'relative rounded-lg border p-1.5 text-center transition',
+                    player
+                      ? 'border-white/10 bg-white/[0.04] hover:border-sky-400/40'
+                      : 'border-dashed border-white/15 text-slate-500 hover:border-sky-400/40',
+                  )}
+                >
+                  <span className="absolute left-1 top-1 text-[9px] text-slate-500">P{position}</span>
+                  {isServer && (
+                    <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-amber-300" />
+                  )}
+                  {player ? (
+                    <>
+                      <p className="text-base font-bold leading-tight tabular-nums text-slate-100">
+                        {player.number ? `#${player.number}` : '—'}
+                      </p>
+                      <p className="truncate text-[10px] text-slate-300">{player.name || 'Unnamed'}</p>
+                      <p className="text-[9px] uppercase tracking-wide text-slate-500">
+                        {ROLE_SHORT[player.role]} · {positionLabel(position)}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-base font-bold leading-tight">+</p>
+                      <p className="text-[9px]">Add player</p>
+                    </>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+      <p className="mt-1 text-center text-[9px] uppercase tracking-wider text-slate-600">
+        Top: front row · Bottom: back row · amber dot = serving
+      </p>
+
+      <Modal
+        open={editing !== null}
+        onClose={() => setEditing(null)}
+        title={`${teamName} · P${editing ?? ''} ${editing ? positionLabel(editing) : ''}`}
+      >
+        {editing !== null && (
+          <PositionForm
+            key={`${side}-${editing}`}
+            side={side}
+            position={editing}
+            onClose={() => setEditing(null)}
+          />
+        )}
+      </Modal>
+    </div>
+  );
+}
+
 function RosterSetupModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [side, setSide] = useState<TeamSide>('home');
   const match = useScorecardStore((state) => state.match);
@@ -322,6 +565,12 @@ function RosterSetupModal({ open, onClose }: { open: boolean; onClose: () => voi
 
   const roster = match.rosters[side];
   const starters = roster.players.filter((player) => player.starter).length;
+  const lineup = match.lineups[side];
+  const rotation = side === 'home' ? match.homeRotation : match.awayRotation;
+  const positionOf = (id: string): number | null => {
+    const index = lineup.indexOf(id);
+    return index === -1 ? null : ((index + rotation - 1) % 6) + 1;
+  };
 
   return (
     <Modal open={open} onClose={onClose} title="Lineups & staff" size="lg">
@@ -371,6 +620,29 @@ function RosterSetupModal({ open, onClose }: { open: boolean; onClose: () => voi
                   className="flex-1"
                   onChange={(event) => updatePlayer(side, player.id, { name: event.target.value })}
                 />
+                <Select
+                  value={player.role}
+                  className="w-28"
+                  title="Player type"
+                  onChange={(event) =>
+                    updatePlayer(side, player.id, { role: event.target.value as PlayerRole })
+                  }
+                >
+                  {(Object.keys(ROLE_LABELS) as PlayerRole[]).map((value) => (
+                    <option key={value} value={value}>
+                      {ROLE_LABELS[value]}
+                    </option>
+                  ))}
+                </Select>
+                <span
+                  className={cn(
+                    'chip w-9 justify-center',
+                    positionOf(player.id) ? 'text-slate-200' : 'text-slate-600',
+                  )}
+                  title="Current court position"
+                >
+                  {positionOf(player.id) ? `P${positionOf(player.id)}` : '—'}
+                </span>
                 <button
                   type="button"
                   onClick={() => toggleStarter(side, player.id)}
@@ -559,6 +831,7 @@ export function ScorecardPage() {
   const finishSet = useScorecardStore((state) => state.finishSet);
   const setTeamName = useScorecardStore((state) => state.setTeamName);
   const setBestOf = useScorecardStore((state) => state.setBestOf);
+  const setFormation = useScorecardStore((state) => state.setFormation);
   const reset = useScorecardStore((state) => state.reset);
   const sub = useScorecardStore((state) => state.sub);
   const [rosterOpen, setRosterOpen] = useState(false);
@@ -609,7 +882,7 @@ export function ScorecardPage() {
 
       <div className="mx-auto max-w-5xl space-y-4 p-5">
         <Panel title="Match setup">
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-4">
             <Field label="Home team">
               <TextInput
                 value={match.config.homeName}
@@ -631,6 +904,18 @@ export function ScorecardPage() {
                   { value: '5', label: 'Best of 5' },
                 ]}
               />
+            </Field>
+            <Field label="Formation" hint={FORMATION_INFO[match.formation].short}>
+              <Select
+                value={match.formation}
+                onChange={(event) => setFormation(event.target.value as Formation)}
+              >
+                {FORMATIONS.map((value) => (
+                  <option key={value} value={value} title={FORMATION_INFO[value].description}>
+                    {value} — {FORMATION_INFO[value].short}
+                  </option>
+                ))}
+              </Select>
             </Field>
           </div>
         </Panel>
@@ -662,6 +947,17 @@ export function ScorecardPage() {
 
           <TeamPanel side="away" onSub={handleSub} />
         </div>
+
+        <Panel title="Starting positions">
+          <p className="mb-3 text-[11px] text-slate-500">
+            Tap any position on the court map to type a name, jersey number and player type — the
+            role pattern follows the selected formation, and the map tracks the live rotation.
+          </p>
+          <div className="grid gap-3 lg:grid-cols-2">
+            <CourtPositionMap side="home" />
+            <CourtPositionMap side="away" />
+          </div>
+        </Panel>
 
         <Analytics />
       </div>

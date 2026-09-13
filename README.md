@@ -12,7 +12,7 @@ Built by **Pranesh Selvaraj** — volleyball player and developer ([@Pranesh-Sel
 - **Theme options** — OLED Black, Midnight and Graphite, switchable from any header and remembered per device
 - **Formation systems** — 5-1, 6-2, 4-2 and 6-6 base positions per play, with or without a libero
 - **Match scorecard & analytics** — live rally scoring, sets, rotation tracking, timeouts, substitutions, sideout %, points by rotation and longest runs (saved on the device)
-- **Optional lineups & staff** — player names, jersey numbers, starters, bench, coaches and support staff; substitutions are player-for-player and per-player stats stay accurate across subs (service points, rallies on court, subs in, best serving run)
+- **Optional lineups & staff** — pick the playing formation, then tap the 2D court map to assign each position: jersey number, name and player type (setter / outside / middle / opposite / libero). Bench, coaches and support staff included; substitutions are player-for-player and per-player stats stay accurate across subs (service points, rallies on court, subs in, best serving run)
 - **Library analytics** — play counts, categories and sharing stats at a glance
 - **Roster & positions** — live panel showing who is who, their role, current zone (4–3–2 / 5–6–1) and task (receiver / setter / spiker / blocker)
 - **Undo / redo everywhere in quick mode** — player moves, ball targets, blocks and step changes (`Ctrl+Z` / `Ctrl+Shift+Z`), plus draggable ball markers and arrow-key nudging
@@ -94,7 +94,7 @@ Undo/redo covers every step (`Ctrl+Z` / `Ctrl+Shift+Z`), the roster panel explai
 
 ### Match scorecard
 
-Open **Scorecard** from the library header (or `/scorecard`) to run a live match on any device: rally scoring, sets and the deciding set, rotation tracking, timeouts, substitutions and analytics — sideout percentage, points by rotation and longest scoring runs. **Lineups & staff** is optional: add player names and jersey numbers, mark six starters, fill the bench, and list coaches and support staff. Substitutions become player-for-player (pick who comes out and who comes in), and the player stats table tracks service points, rallies played, subs and best serving runs correctly across substitutions. The match is saved in the browser, so a refresh at the gym does not lose the score.
+Open **Scorecard** from the library header (or `/scorecard`) to run a live match on any device: rally scoring, sets and the deciding set, rotation tracking, timeouts, substitutions and analytics — sideout percentage, points by rotation and longest scoring runs. **Lineups & staff** is optional and now formation-aware: choose the system (5-1 / 6-2 / 4-2 / 6-6), then tap any of the six positions on the 2D court map to enter a name, jersey number and player type — the map shows the current rotation with jersey numbers, role abbreviations and a serving marker. You can also edit the roster list, fill the bench and add coaches/support staff. Substitutions become player-for-player (pick who comes out and who comes in), and the player stats table tracks service points, rallies played, subs and best serving runs correctly across substitutions. The match is saved in the browser, so a refresh at the gym does not lose the score.
 
 ### Player models (Sprint 5)
 
