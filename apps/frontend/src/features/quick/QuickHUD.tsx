@@ -10,8 +10,8 @@ import {
   Undo2,
   Video,
 } from 'lucide-react';
-import { NET_HEIGHT_MEN, TRAJECTORY_COLORS } from '@tempo/shared-types';
-import { Modal, Button } from '../../components/ui';
+import { NET_HEIGHT_MEN, ROLE_LABELS, TRAJECTORY_COLORS } from '@tempo/shared-types';
+import { Modal, Button, Select } from '../../components/ui';
 import { cn } from '../../lib/cn';
 import { trpc } from '../../lib/trpc';
 import { usePlayStore } from '../../stores/playStore';
@@ -75,17 +75,58 @@ function HistoryButtons() {
   );
 }
 
+function RoleAssignments() {
+  const players = usePlayStore((state) => state.players);
+  const roles = useQuickStore((state) => state.roles);
+  const setRole = useQuickStore((state) => state.setRole);
+  const home = players.filter((player) => !player.playerId.startsWith('opp'));
+  const kinds = [
+    { key: 'receiver', label: 'Receiver' },
+    { key: 'setter', label: 'Setter' },
+    { key: 'spiker', label: 'Spiker' },
+  ] as const;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-[10px] uppercase tracking-wide text-slate-500">Who plays</span>
+      {kinds.map(({ key, label }) => (
+        <label key={key} className="flex items-center gap-1 text-[10px] text-slate-400">
+          {label}
+          <Select
+            value={roles[key] ?? ''}
+            onChange={(event) => setRole(key, event.target.value || null)}
+            className="h-7 w-28 py-0 text-[11px]"
+          >
+            <option value="">Auto</option>
+            {home.map((player) => (
+              <option key={player.playerId} value={player.playerId}>
+                #{player.playerId.replace(/\D/g, '')} · {ROLE_LABELS[player.role]}
+              </option>
+            ))}
+          </Select>
+        </label>
+      ))}
+    </div>
+  );
+}
+
 function ReceiveStep() {
   const lockReceive = useQuickStore((state) => state.lockReceive);
+  const saveCustomFormation = useQuickStore((state) => state.saveCustomFormation);
   return (
-    <div className="flex items-center justify-between gap-3">
+    <div className="flex flex-wrap items-center justify-between gap-3">
       <p className="text-xs text-slate-300">
         Drag your players to where they stand when receiving. Use the roster on the left to see who
-        is who. Lock them in when you are happy.
+        is who. Save the positions as your own formation, or lock them in.
       </p>
-      <Button variant="primary" onClick={lockReceive}>
-        Lock receive →
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button onClick={saveCustomFormation} title="Save the current positions as a custom formation">
+          Save custom
+        </Button>
+        <Button variant="primary" onClick={lockReceive}>
+          Lock receive →
+        </Button>
+      </div>
     </div>
   );
 }
@@ -266,7 +307,7 @@ function PlayStep() {
         name: quick.name.trim() || 'Quick play',
         category: 'serve_receive',
         rotation: quick.rotation,
-        formation: quick.formation,
+        formation: quick.formation === 'custom' ? '5-1' : quick.formation,
         libero: quick.libero,
         courtType: 'indoor',
         netHeight: NET_HEIGHT_MEN,
@@ -411,6 +452,7 @@ export function QuickHUD() {
           <HistoryButtons />
         </div>
         {content}
+        {(step === 'ball' || step === 'attack') && <RoleAssignments />}
       </div>
     </div>
   );

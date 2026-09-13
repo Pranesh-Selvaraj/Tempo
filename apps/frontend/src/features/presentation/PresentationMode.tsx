@@ -81,7 +81,7 @@ export function PresentationMode() {
 
   return (
     <div
-      className="relative h-full w-full overflow-hidden bg-black"
+      className="relative h-full w-full overflow-hidden bg-panel-950"
       onPointerMove={() => setChromeVisible(true)}
       onTouchStart={(event) => {
         const touch = event.touches[0];

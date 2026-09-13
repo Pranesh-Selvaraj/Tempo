@@ -23,7 +23,7 @@ export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
             className="h-3 w-3 shrink-0 rounded-full border border-white/25"
             style={{ background: THEME_INFO[id].swatch }}
           />
-          {!compact && THEME_INFO[id].label}
+          {(!compact || theme === id) && THEME_INFO[id].label}
         </button>
       ))}
     </div>

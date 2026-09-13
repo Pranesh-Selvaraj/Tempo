@@ -28,7 +28,8 @@ export function interpolatePlayerStates(
   if (!after) return before.playerStates;
 
   const span = after.timestampMs - before.timestampMs;
-  const t = span <= 0 ? 0 : (currentMs - before.timestampMs) / span;
+  const raw = span <= 0 ? 0 : (currentMs - before.timestampMs) / span;
+  const t = raw * raw * (3 - 2 * raw);
   const beforeMap = playerMap(before.playerStates);
   const afterMap = playerMap(after.playerStates);
 

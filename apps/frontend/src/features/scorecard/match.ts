@@ -70,9 +70,22 @@ export const STAFF_ROLES = [
   'Physio',
 ] as const;
 
+export interface MatchClock {
+  running: boolean;
+  accumulatedMs: number;
+  startedAt: number | null;
+}
+
+export interface TimeoutTimer {
+  side: TeamSide | null;
+  endsAt: number | null;
+}
+
+export const TIMEOUT_SECONDS = 30;
+
 export interface MatchState {
   config: MatchConfig;
-  formation: Formation;
+  formations: { home: Formation; away: Formation };
   homeScore: number;
   awayScore: number;
   sets: SetScore[];
@@ -87,6 +100,8 @@ export interface MatchState {
   rosters: { home: TeamRoster; away: TeamRoster };
   lineups: { home: (string | null)[]; away: (string | null)[] };
   subEvents: SubEvent[];
+  clock: MatchClock;
+  timeoutTimer: TimeoutTimer;
 }
 
 export const SET_TIMEOUTS = 2;
@@ -129,7 +144,7 @@ export function formationRoles(formation: Formation): PlayerRole[] {
 export function expectedRoleAt(state: MatchState, side: TeamSide, position: number): PlayerRole {
   const rotation = side === 'home' ? state.homeRotation : state.awayRotation;
   const index = lineupIndexForPosition(rotation, position);
-  return formationRoles(state.formation)[index] ?? 'outside';
+  return formationRoles(state.formations[side])[index] ?? 'outside';
 }
 
 /** Keep each starter flag in sync with the six players who are actually on court. */
@@ -178,22 +193,30 @@ export function assignPosition(
   return syncStarters({ ...state, lineups: { ...state.lineups, [side]: lineup } }, side);
 }
 
-/** Apply a formation's role pattern to the six on-court players, by rotation order. */
-export function applyFormation(state: MatchState, formation: Formation): MatchState {
+/** Apply a formation's role pattern to one team's six on-court players, by rotation order. */
+export function applyFormation(
+  state: MatchState,
+  side: TeamSide,
+  formation: Formation,
+): MatchState {
   const roles = formationRoles(formation);
-  const rosters = { ...state.rosters };
-  for (const side of ['home', 'away'] as TeamSide[]) {
-    const lineup = state.lineups[side];
-    rosters[side] = {
-      ...state.rosters[side],
-      players: state.rosters[side].players.map((player) => {
-        const index = lineup.indexOf(player.id);
-        if (index === -1) return player;
-        return { ...player, role: roles[index] ?? player.role };
-      }),
-    };
-  }
-  return { ...state, formation, rosters };
+  const lineup = state.lineups[side];
+  const roster = state.rosters[side];
+  return {
+    ...state,
+    formations: { ...state.formations, [side]: formation },
+    rosters: {
+      ...state.rosters,
+      [side]: {
+        ...roster,
+        players: roster.players.map((player) => {
+          const index = lineup.indexOf(player.id);
+          if (index === -1) return player;
+          return { ...player, role: roles[index] ?? player.role };
+        }),
+      },
+    },
+  };
 }
 
 /** The on-court six, in rotation order (index 0 starts at position 1). */
@@ -211,7 +234,7 @@ export function createMatch(config: Partial<MatchConfig> = {}): MatchState {
       awayName: config.awayName ?? 'Away',
       bestOf: config.bestOf ?? 5,
     },
-    formation: '5-1',
+    formations: { home: '5-1', away: '5-1' },
     homeScore: 0,
     awayScore: 0,
     sets: [],
@@ -226,7 +249,47 @@ export function createMatch(config: Partial<MatchConfig> = {}): MatchState {
     rosters: { home: emptyRoster(), away: emptyRoster() },
     lineups: { home: emptyLineup(), away: emptyLineup() },
     subEvents: [],
+    clock: { running: false, accumulatedMs: 0, startedAt: null },
+    timeoutTimer: { side: null, endsAt: null },
   };
+}
+
+export function clockElapsedMs(state: MatchState, now = Date.now()): number {
+  const { running, accumulatedMs, startedAt } = state.clock;
+  return accumulatedMs + (running && startedAt !== null ? Math.max(0, now - startedAt) : 0);
+}
+
+export function formatClock(ms: number): string {
+  const totalSeconds = Math.floor(Math.max(0, ms) / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
+
+export function toggleClock(state: MatchState, now = Date.now()): MatchState {
+  if (state.clock.running) {
+    return {
+      ...state,
+      clock: {
+        running: false,
+        accumulatedMs: clockElapsedMs(state, now),
+        startedAt: null,
+      },
+    };
+  }
+  return {
+    ...state,
+    clock: { running: true, accumulatedMs: state.clock.accumulatedMs, startedAt: now },
+  };
+}
+
+export function resetClock(state: MatchState): MatchState {
+  return { ...state, clock: { running: false, accumulatedMs: 0, startedAt: null } };
+}
+
+export function timeoutTimerRemainingMs(state: MatchState, now = Date.now()): number {
+  if (state.timeoutTimer.endsAt === null) return 0;
+  return Math.max(0, state.timeoutTimer.endsAt - now);
 }
 
 export function maxSets(bestOf: 3 | 5): number {
@@ -428,6 +491,9 @@ export interface PlayerStat {
   servicePoints: number;
   ralliesOnCourt: number;
   subsIn: number;
+  subsOut: number;
+  onCourt: boolean;
+  participation: number;
   maxServingRun: number;
 }
 
@@ -444,6 +510,9 @@ export function computePlayerStats(state: MatchState): PlayerStat[] {
         servicePoints: 0,
         ralliesOnCourt: 0,
         subsIn: 0,
+        subsOut: 0,
+        onCourt: state.lineups[side].includes(player.id),
+        participation: 0,
         maxServingRun: 0,
       });
     }
@@ -505,11 +574,50 @@ export function computePlayerStats(state: MatchState): PlayerStat[] {
   }
 
   for (const event of state.subEvents) {
-    const stat = stats.get(event.inId);
-    if (stat) stat.subsIn += 1;
+    const inStat = stats.get(event.inId);
+    if (inStat) inStat.subsIn += 1;
+    const outStat = stats.get(event.outId);
+    if (outStat) outStat.subsOut += 1;
+  }
+
+  const totalRallies = state.events.length;
+  for (const stat of stats.values()) {
+    stat.participation =
+      totalRallies === 0 ? 0 : Math.round((stat.ralliesOnCourt / totalRallies) * 100);
   }
 
   return [...stats.values()];
+}
+
+export interface SubLogEntry {
+  setId: number;
+  side: TeamSide;
+  outName: string;
+  inName: string;
+  homeScore: number;
+  awayScore: number;
+}
+
+export function substitutionLog(state: MatchState): SubLogEntry[] {
+  const nameOf = (side: TeamSide, id: string): string => {
+    const player = state.rosters[side].players.find((item) => item.id === id);
+    if (!player) return 'Unknown';
+    return `${player.number ? `#${player.number} ` : ''}${player.name || 'Unnamed'}`;
+  };
+
+  return state.subEvents.map((sub) => {
+    const last = sub.eventIndex > 0 ? state.events[sub.eventIndex - 1] : undefined;
+    const homeScore = last ? last.homeScoreBefore + (last.scoring === 'home' ? 1 : 0) : 0;
+    const awayScore = last ? last.awayScoreBefore + (last.scoring === 'away' ? 1 : 0) : 0;
+    return {
+      setId: sub.setIndex + 1,
+      side: sub.side,
+      outName: nameOf(sub.side, sub.outId),
+      inName: nameOf(sub.side, sub.inId),
+      homeScore,
+      awayScore,
+    };
+  });
 }
 
 export interface MatchAnalytics {

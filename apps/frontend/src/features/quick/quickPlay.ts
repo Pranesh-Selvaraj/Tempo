@@ -28,6 +28,7 @@ export const QUICK_TIMING = {
   attack: { startMs: 3600, durationMs: 750 },
   passContactMs: 2500,
   spikeAtMs: 3700,
+  runMidMs: 2900,
   totalMs: 4800,
 } as const;
 
@@ -193,19 +194,64 @@ export function spikerFor(
   );
 }
 
+export interface QuickRoles {
+  receiver?: string | null;
+  setter?: string | null;
+  spiker?: string | null;
+}
+
+/** Explicit role picks when set, otherwise the nearest player to each target. */
+export function resolveRoleIds(
+  players: PlayerState[],
+  opts: {
+    serveTarget?: Vec3 | null;
+    setterSpot?: Vec3 | null;
+    setTarget?: Vec3 | null;
+    spikeTarget?: Vec3 | null;
+    roles?: QuickRoles;
+  },
+): { receiver: string | null; setter: string | null; spiker: string | null } {
+  const home = homePlayers(players);
+  const pick = (id: string | null | undefined, fallback: PlayerState | null): string | null =>
+    home.some((player) => player.playerId === id) ? (id as string) : (fallback?.playerId ?? null);
+
+  const setter = pick(opts.roles?.setter, setterFor(home, opts.setterSpot ?? null));
+  const exclude = setter ? [setter] : [];
+  const spikerFallback =
+    nearestTo(home, opts.spikeTarget ?? null, exclude) ??
+    nearestTo(home, opts.setTarget ?? null, exclude);
+
+  return {
+    receiver: pick(
+      opts.roles?.receiver,
+      opts.serveTarget ? receiverFor(home, opts.serveTarget) : null,
+    ),
+    setter,
+    spiker: pick(opts.roles?.spiker, spikerFallback),
+  };
+}
+
 export function autoPose(
   players: PlayerState[],
-  opts: { passTarget?: Vec3 | null; setTarget?: Vec3 | null; spikeTarget?: Vec3 | null },
+  opts: {
+    passTarget?: Vec3 | null;
+    setTarget?: Vec3 | null;
+    spikeTarget?: Vec3 | null;
+    roles?: QuickRoles;
+  },
 ): PlayerState[] {
-  const home = homePlayers(players);
-  const receiver = opts.passTarget ? receiverFor(home, opts.passTarget) : null;
-  const setter = setterFor(home, opts.setTarget ?? null);
-  const spiker = spikerFor(home, opts.setTarget ?? null, opts.spikeTarget ?? null);
+  const ids = resolveRoleIds(players, {
+    serveTarget: opts.passTarget ?? null,
+    setterSpot: opts.setTarget ?? null,
+    setTarget: opts.setTarget ?? null,
+    spikeTarget: opts.spikeTarget ?? null,
+    roles: opts.roles,
+  });
   return players.map((player) => {
     if (isOpponent(player.playerId)) return { ...player, pose: 'block' as const };
-    if (player.playerId === spiker?.playerId) return { ...player, pose: 'spike' as const };
-    if (player.playerId === setter?.playerId) return { ...player, pose: 'set' as const };
-    if (player.playerId === receiver?.playerId && opts.passTarget) {
+    if (player.playerId === ids.spiker) return { ...player, pose: 'spike' as const };
+    if (player.playerId === ids.setter) return { ...player, pose: 'set' as const };
+    if (player.playerId === ids.receiver && opts.passTarget) {
       return { ...player, pose: 'pass' as const };
     }
     return { ...player, pose: 'ready' as const };
@@ -225,6 +271,51 @@ export function buildTrajectories(playId: string, legs: QuickLeg[]): Trajectory[
   }));
 }
 
+function easeInOut(t: number): number {
+  return t * t * (3 - 2 * t);
+}
+
+/**
+ * Mid-run snapshot that bows each player's route and turns them toward their
+ * run, so the linear keyframe interpolation reads as a natural approach.
+ */
+function buildRunKeyframe(
+  receive: PlayerState[],
+  attack: PlayerState[],
+  timestampMs: number,
+  spikerId: string | null,
+): PlayerState[] {
+  const origin = new Map(receive.map((player) => [player.playerId, player]));
+  const moveStart = QUICK_TIMING.passContactMs;
+  const moveSpan = Math.max(1, QUICK_TIMING.spikeAtMs - moveStart);
+  const progress = easeInOut(clamp((timestampMs - moveStart) / moveSpan, 0, 1));
+
+  return attack.map((player, index) => {
+    const from = origin.get(player.playerId);
+    if (!from) return player;
+    const dx = player.position.x - from.position.x;
+    const dz = player.position.z - from.position.z;
+    const distance = Math.hypot(dx, dz);
+    if (distance < 0.05) return from;
+
+    const bow = Math.min(0.5, distance * 0.13) * (index % 2 === 0 ? 1 : -1);
+    const offsetX = (-dz / distance) * bow;
+    const offsetZ = (dx / distance) * bow;
+    const rotationY = (Math.atan2(-dx, -dz) * 180) / Math.PI;
+
+    return {
+      ...from,
+      position: {
+        x: from.position.x + dx * progress + offsetX,
+        y: 0,
+        z: from.position.z + dz * progress + offsetZ,
+      },
+      rotationY,
+      pose: player.playerId === spikerId ? ('approach_2' as const) : from.pose,
+    };
+  });
+}
+
 export function buildKeyframes(
   playId: string,
   args: {
@@ -234,19 +325,28 @@ export function buildKeyframes(
     setterSpot: Vec3 | null;
     setTarget: Vec3 | null;
     spikeTarget: Vec3 | null;
+    roles?: QuickRoles;
   },
 ): Keyframe[] {
-  const receiver = receiverFor(args.receive, args.serveTarget);
+  const ids = resolveRoleIds(args.receive, {
+    serveTarget: args.serveTarget,
+    setterSpot: args.setterSpot,
+    setTarget: args.setTarget,
+    spikeTarget: args.spikeTarget,
+    roles: args.roles,
+  });
   const received = args.receive.map((player) => ({ ...player, pose: 'ready' as const }));
   const passed = args.receive.map((player) => ({
     ...player,
-    pose: player.playerId === receiver?.playerId ? ('pass' as const) : ('ready' as const),
+    pose: player.playerId === ids.receiver ? ('pass' as const) : ('ready' as const),
   }));
   const attacked = autoPose(args.attack, {
     passTarget: args.serveTarget,
     setTarget: args.setterSpot,
     spikeTarget: args.spikeTarget,
+    roles: args.roles,
   });
+  const running = buildRunKeyframe(received, attacked, QUICK_TIMING.runMidMs, ids.spiker);
 
   const make = (timestampMs: number, playerStates: PlayerState[]): Keyframe => ({
     id: crypto.randomUUID(),
@@ -261,6 +361,7 @@ export function buildKeyframes(
   return [
     make(0, received),
     make(QUICK_TIMING.passContactMs, passed),
+    make(QUICK_TIMING.runMidMs, running),
     make(QUICK_TIMING.spikeAtMs, attacked),
   ];
 }
@@ -300,12 +401,17 @@ export function rosterRows(
     setTarget: Vec3 | null;
     spikeTarget: Vec3 | null;
     receiveFormation: PlayerState[] | null;
+    roles?: QuickRoles;
   },
 ): QuickRosterRow[] {
   const home = homePlayers(players);
-  const receiver = receiverFor(home, opts.serveTarget);
-  const setter = setterFor(home, opts.setterSpot);
-  const spiker = spikerFor(home, opts.setTarget, opts.spikeTarget);
+  const ids = resolveRoleIds(home, {
+    serveTarget: opts.serveTarget,
+    setterSpot: opts.setterSpot,
+    setTarget: opts.setTarget,
+    spikeTarget: opts.spikeTarget,
+    roles: opts.roles,
+  });
   const origin = opts.receiveFormation
     ? new Map(opts.receiveFormation.map((player) => [player.playerId, player]))
     : null;
@@ -317,9 +423,9 @@ export function rosterRows(
       const runDistance = from ? distance2D(from.position, player.position) : null;
       let task: string | null = null;
       if (isOpponent(player.playerId)) task = 'Blocker';
-      else if (player.playerId === spiker?.playerId) task = 'Spiker';
-      else if (player.playerId === setter?.playerId) task = 'Setter';
-      else if (player.playerId === receiver?.playerId) task = 'Receiver';
+      else if (player.playerId === ids.spiker) task = 'Spiker';
+      else if (player.playerId === ids.setter) task = 'Setter';
+      else if (player.playerId === ids.receiver) task = 'Receiver';
 
       return {
         playerId: player.playerId,

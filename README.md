@@ -8,10 +8,11 @@ Built by **Pranesh Selvaraj** — volleyball player and developer ([@Pranesh-Sel
 
 ## Features
 
-- **Interactive play mode** — skip setup and start on the court: drag the receive formation, tap three ball targets, pick the block count, mark the spike, watch it animate, then save or record
+- **Interactive play mode** — skip setup and start on the court: drag the receive formation, tap three ball targets, **pick who receives, sets and spikes**, pick the block count, mark the spike, watch natural curved runs animate, then save or record. Save your own **custom formation** at any time
 - **Theme options** — OLED Black, Midnight and Graphite, switchable from any header and remembered per device
 - **Formation systems** — 5-1, 6-2, 4-2 and 6-6 base positions per play, with or without a libero
-- **Match scorecard & analytics** — live rally scoring, sets, rotation tracking, timeouts, substitutions, sideout %, points by rotation and longest runs (saved on the device)
+- **Match scorecard & analytics** — live rally scoring, sets, rotation tracking, timeouts with a **30-second countdown**, a **match clock/stopwatch**, substitutions, sideout %, points by rotation and longest runs (saved on the device)
+- **Home scoreboard** — a live scoreboard widget on the library page with scores, serving team, clock, timeouts and quick point buttons
 - **Optional lineups & staff** — pick the playing formation, then tap the 2D court map to assign each position: jersey number, name and player type (setter / outside / middle / opposite / libero). Bench, coaches and support staff included; substitutions are player-for-player and per-player stats stay accurate across subs (service points, rallies on court, subs in, best serving run)
 - **Library analytics** — play counts, categories and sharing stats at a glance
 - **Roster & positions** — live panel showing who is who, their role, current zone (4–3–2 / 5–6–1) and task (receiver / setter / spiker / blocker)
@@ -90,11 +91,11 @@ Open **Library → Interactive play** to skip play creation entirely. You start 
 3. Drag players to their spike-time spots (dashed lines show each run), choose 0–3 blocks and tap where the spike lands.
 4. Press **Watch the play** — serve, pass, set and spike animate with the ball. Then save it as a normal play or jump straight to recording a video.
 
-Undo/redo covers every step (`Ctrl+Z` / `Ctrl+Shift+Z`), the roster panel explains who is who and which zone they play, and ball markers can be dragged or nudged with the arrow keys. Switch formation (5-1 / 6-2 / 4-2 / 6-6) and toggle the libero right from the header, and jump between camera angles — Coaching, Top Down, Home End, Away End or player POVs — with one tap.
+Undo/redo covers every step (`Ctrl+Z` / `Ctrl+Shift+Z`), the roster panel explains who is who and which zone they play, and ball markers can be dragged or nudged with the arrow keys. Use **Who plays** to pick the receiver, setter and spiker (or leave them on Auto), switch formation (5-1 / 6-2 / 4-2 / 6-6) or **Save custom** to turn your current positions into your own formation, and jump between camera angles — Coaching, Top Down, Home End, Away End or player POVs — with one tap. Players run curved, eased routes toward their positions and turn to face their run.
 
 ### Match scorecard
 
-Open **Scorecard** from the library header (or `/scorecard`) to run a live match on any device: rally scoring, sets and the deciding set, rotation tracking, timeouts, substitutions and analytics — sideout percentage, points by rotation and longest scoring runs. **Lineups & staff** is optional and now formation-aware: choose the system (5-1 / 6-2 / 4-2 / 6-6), then tap any of the six positions on the 2D court map to enter a name, jersey number and player type — the map shows the current rotation with jersey numbers, role abbreviations and a serving marker. You can also edit the roster list, fill the bench and add coaches/support staff. Substitutions become player-for-player (pick who comes out and who comes in), and the player stats table tracks service points, rallies played, subs and best serving runs correctly across substitutions. The match is saved in the browser, so a refresh at the gym does not lose the score.
+Open **Scorecard** from the library header (or `/scorecard`) to run a live match on any device: rally scoring, sets and the deciding set, rotation tracking, timeouts, substitutions and analytics — sideout percentage, points by rotation and longest scoring runs. **Lineups & staff** is optional and now formation-aware: choose the system (5-1 / 6-2 / 4-2 / 6-6), then tap any of the six positions on the 2D court map to enter a name, jersey number and player type — the map shows the current rotation with jersey numbers, role abbreviations and a serving marker. You can also edit the roster list, fill the bench and add coaches/support staff. Substitutions become player-for-player (pick who comes out and who comes in), and the player stats table tracks service points, rallies played, subs and best serving runs correctly across substitutions. The match is saved in the browser, so a refresh at the gym does not lose the score. Run the **match clock** (stopwatch), start a **30-second timeout countdown** from either team panel, and keep an eye on the live widget on the home page.
 
 ### Player models (Sprint 5)
 
@@ -167,7 +168,7 @@ packages/
 | 9 · Presentation mode (PWA) | ✅ manifest, service worker, full-screen route, chapter bar |
 | 10 · Studio export | ✅ frame-by-frame WebCodecs render, background queue, upload to `/uploads` or R2 |
 | 11 · Interactive play | ✅ start-on-court quick mode, tap-to-target ball paths, block stepper, undo/redo, roster panel, save → advanced editor |
-| 12 · Volleyball suite | ✅ theme options (OLED / Midnight / Graphite), formation systems (5-1 / 6-2 / 4-2 / 6-6) with libero, quick-play camera angles, live scorecard with optional lineups & staff + per-player analytics, library stats |
+| 12 · Volleyball suite | ✅ theme options (OLED / Midnight / Graphite), formation systems (5-1 / 6-2 / 4-2 / 6-6) with libero, quick-play role picks, custom formations, natural curved runs and camera angles, live scorecard with lineups & staff, per-player analytics, match clock + timeout countdown, home scoreboard widget |
 
 ## Author
 

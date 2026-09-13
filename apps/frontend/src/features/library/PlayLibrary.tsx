@@ -18,6 +18,7 @@ import type { Play } from '../../lib/trpc';
 import { useAuthStore } from '../../stores/authStore';
 import { ThemeSwitcher } from '../../components/ThemeSwitcher';
 import { Button, Field, Modal, NumberInput, Panel, Select, TextInput } from '../../components/ui';
+import { ScorecardWidget } from '../scorecard/ScorecardWidget';
 import { PlayCard } from './PlayCard';
 
 function LibraryStats({ plays }: { plays: Play[] }) {
@@ -258,6 +259,8 @@ export function PlayLibrary() {
             </button>
           ))}
         </div>
+
+        <ScorecardWidget />
 
         {!list.isLoading && !list.error && (list.data ?? []).length > 0 && (
           <LibraryStats plays={list.data ?? []} />

@@ -11,14 +11,40 @@ import {
   buildKeyframes,
   buildLegs,
   buildTrajectories,
+  resolveRoleIds,
   syncOpponents,
+  type QuickRoles,
   type QuickStep,
 } from '../features/quick/quickPlay';
+
+export type QuickFormation = Formation | 'custom';
+
+const CUSTOM_KEY = 'tempo.customFormations.v1';
+
+function readCustomFormations(): Record<string, PlayerState[]> {
+  try {
+    const raw = localStorage.getItem(CUSTOM_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, PlayerState[]>;
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeCustomFormations(value: Record<string, PlayerState[]>): void {
+  try {
+    localStorage.setItem(CUSTOM_KEY, JSON.stringify(value));
+  } catch {
+    /* storage unavailable */
+  }
+}
 
 interface QuickSnapshot {
   step: QuickStep;
   rotation: number;
-  formation: Formation;
+  formation: QuickFormation;
+  roles: QuickRoles;
   libero: boolean;
   ballTargets: Vec3[];
   spikeTarget: Vec3 | null;
@@ -37,7 +63,9 @@ interface QuickState {
   active: boolean;
   step: QuickStep;
   rotation: number;
-  formation: Formation;
+  formation: QuickFormation;
+  roles: QuickRoles;
+  customFormations: Record<string, PlayerState[]>;
   libero: boolean;
   name: string;
   setHeight: number;
@@ -61,7 +89,10 @@ interface QuickState {
   setStep: (step: QuickStep) => void;
   setName: (name: string) => void;
   setRotation: (rotation: number) => void;
-  setFormation: (formation: Formation) => void;
+  setFormation: (formation: QuickFormation) => void;
+  saveCustomFormation: () => void;
+  setRole: (kind: 'receiver' | 'setter' | 'spiker', playerId: string | null) => void;
+  syncDefaultRoles: () => void;
   setLibero: (libero: boolean) => void;
   setSetHeight: (height: number) => void;
   toggleRoster: () => void;
@@ -87,7 +118,9 @@ const initialState = {
   active: false,
   step: 'receive' as QuickStep,
   rotation: 1,
-  formation: '5-1' as Formation,
+  formation: '5-1' as QuickFormation,
+  roles: {} as QuickRoles,
+  customFormations: {} as Record<string, PlayerState[]>,
   libero: true,
   name: 'Quick play',
   setHeight: QUICK_SET_HEIGHT_DEFAULT,
@@ -117,6 +150,7 @@ function capture(state: QuickState): QuickSnapshot {
     step: state.step,
     rotation: state.rotation,
     formation: state.formation,
+    roles: { ...state.roles },
     libero: state.libero,
     ballTargets: state.ballTargets.map((point) => ({ ...point })),
     spikeTarget: state.spikeTarget ? { ...state.spikeTarget } : null,
@@ -165,6 +199,7 @@ function apply(snapshot: QuickSnapshot): void {
     ballTargets: snapshot.ballTargets.map((point) => ({ ...point })),
     spikeTarget: snapshot.spikeTarget ? { ...snapshot.spikeTarget } : null,
     blockers: snapshot.blockers,
+    roles: { ...snapshot.roles },
     receiveFormation: snapshot.receiveFormation?.map(cloneState) ?? null,
     attackFormation: snapshot.attackFormation?.map(cloneState) ?? null,
     setHeight: snapshot.setHeight,
@@ -199,14 +234,14 @@ export const useQuickStore = create<QuickState>((set, get) => ({
     useTimelineStore.getState().reset();
     useEditorStore.getState().setTool('select');
     useEditorStore.getState().setDragEnabled(true);
-    set({ ...initialState, active: true, rotation });
+    set({ ...initialState, customFormations: readCustomFormations(), active: true, rotation });
   },
 
   stop: () => {
     usePlayStore.getState().reset();
     useTimelineStore.getState().reset();
     useEditorStore.getState().setDragEnabled(true);
-    set({ ...initialState });
+    set({ ...initialState, customFormations: get().customFormations });
   },
 
   beginHistory: (tag) =>
@@ -270,8 +305,14 @@ export const useQuickStore = create<QuickState>((set, get) => ({
 
   setRotation: (rotation) => {
     get().beginHistory();
-    const { formation, libero } = get();
-    usePlayStore.getState().setPlayers(basePlayersFor(rotation, formation, libero));
+    const { formation, libero, customFormations } = get();
+    if (formation === 'custom') {
+      const saved = customFormations[String(rotation)];
+      if (saved) usePlayStore.getState().setPlayers(saved.map(cloneState));
+      else usePlayStore.getState().setPlayers(basePlayersFor(rotation, '5-1', libero));
+    } else {
+      usePlayStore.getState().setPlayers(basePlayersFor(rotation, formation, libero));
+    }
     set({
       rotation,
       receiveFormation: null,
@@ -282,10 +323,16 @@ export const useQuickStore = create<QuickState>((set, get) => ({
 
   setFormation: (formation) => {
     get().beginHistory();
-    const { rotation, libero } = get();
+    const { rotation, libero, customFormations } = get();
     const play = usePlayStore.getState().play;
-    usePlayStore.getState().setPlayers(basePlayersFor(rotation, formation, libero));
-    if (play) usePlayStore.getState().setPlay({ ...play, formation });
+    if (formation === 'custom') {
+      const saved = customFormations[String(rotation)];
+      if (saved) usePlayStore.getState().setPlayers(saved.map(cloneState));
+      if (play) usePlayStore.getState().setPlay({ ...play, formation: '5-1' });
+    } else {
+      usePlayStore.getState().setPlayers(basePlayersFor(rotation, formation, libero));
+      if (play) usePlayStore.getState().setPlay({ ...play, formation });
+    }
     set({
       formation,
       receiveFormation: null,
@@ -294,13 +341,37 @@ export const useQuickStore = create<QuickState>((set, get) => ({
     });
   },
 
+  saveCustomFormation: () => {
+    const { rotation, customFormations } = get();
+    const saved = usePlayStore.getState().players.map(cloneState);
+    const next = { ...customFormations, [String(rotation)]: saved };
+    writeCustomFormations(next);
+    set({ customFormations: next, formation: 'custom' });
+  },
+
+  setRole: (kind, playerId) => set((state) => ({ roles: { ...state.roles, [kind]: playerId } })),
+
+  syncDefaultRoles: () => {
+    const { ballTargets, spikeTarget, roles } = get();
+    const ids = resolveRoleIds(usePlayStore.getState().players, {
+      serveTarget: ballTargets[0] ?? null,
+      setterSpot: ballTargets[1] ?? null,
+      setTarget: ballTargets[2] ?? null,
+      spikeTarget,
+      roles,
+    });
+    set({ roles: ids });
+  },
+
   setLibero: (libero) => {
     get().beginHistory();
     const { rotation, formation } = get();
     const play = usePlayStore.getState().play;
-    usePlayStore.getState().setPlayers(basePlayersFor(rotation, formation, libero));
+    const baseFormation = formation === 'custom' ? '5-1' : formation;
+    usePlayStore.getState().setPlayers(basePlayersFor(rotation, baseFormation, libero));
     if (play) usePlayStore.getState().setPlay({ ...play, libero });
     set({
+      formation: baseFormation,
       libero,
       receiveFormation: null,
       attackFormation: null,
@@ -323,14 +394,16 @@ export const useQuickStore = create<QuickState>((set, get) => ({
         step: targets.length === 3 ? 'attack' : 'ball',
       };
     });
+    get().syncDefaultRoles();
   },
 
-  updateBallTarget: (index, point) =>
+  updateBallTarget: (index, point) => {
     set((state) =>
       index < state.ballTargets.length
         ? { ballTargets: state.ballTargets.map((item, i) => (i === index ? point : item)) }
         : {},
-    ),
+    );
+  },
 
   undoBallTarget: () => {
     if (get().ballTargets.length === 0) return;
@@ -340,15 +413,19 @@ export const useQuickStore = create<QuickState>((set, get) => ({
       selectedTarget: null,
       step: 'ball',
     }));
+    get().syncDefaultRoles();
   },
 
   clearBall: () => {
     if (get().ballTargets.length === 0 && !get().spikeTarget) return;
     get().beginHistory();
-    set({ ballTargets: [], spikeTarget: null, selectedTarget: null, step: 'ball' });
+    set({ ballTargets: [], spikeTarget: null, selectedTarget: null, step: 'ball', roles: {} });
   },
 
-  setSpikeTarget: (spikeTarget) => set({ spikeTarget }),
+  setSpikeTarget: (spikeTarget) => {
+    set({ spikeTarget });
+    get().syncDefaultRoles();
+  },
 
   selectTarget: (selectedTarget) => set({ selectedTarget }),
 
@@ -377,7 +454,7 @@ export const useQuickStore = create<QuickState>((set, get) => ({
 
   setBlockers: (count) => {
     get().beginHistory();
-    const { ballTargets, spikeTarget } = get();
+    const { ballTargets, spikeTarget, roles } = get();
     const anchorZ = spikeTarget?.z ?? ballTargets[2]?.z ?? 0;
     const synced = syncOpponents(usePlayStore.getState().players, count, anchorZ);
     usePlayStore.getState().setPlayers(
@@ -385,6 +462,7 @@ export const useQuickStore = create<QuickState>((set, get) => ({
         passTarget: ballTargets[0] ?? null,
         setTarget: ballTargets[1] ?? null,
         spikeTarget,
+        roles,
       }),
     );
     set({ blockers: count });
@@ -400,7 +478,7 @@ export const useQuickStore = create<QuickState>((set, get) => ({
   },
 
   startPlayback: () => {
-    const { receiveFormation, ballTargets, spikeTarget, setHeight, blockers } = get();
+    const { receiveFormation, ballTargets, spikeTarget, setHeight, blockers, roles } = get();
     if (!receiveFormation || ballTargets.length < 3) return;
     const play = usePlayStore.getState().play;
     if (!play) return;
@@ -412,6 +490,7 @@ export const useQuickStore = create<QuickState>((set, get) => ({
       passTarget: ballTargets[0] ?? null,
       setTarget: ballTargets[1] ?? null,
       spikeTarget,
+      roles,
     });
 
     const legs = buildLegs(ballTargets, spikeTarget, setHeight);
@@ -425,6 +504,7 @@ export const useQuickStore = create<QuickState>((set, get) => ({
         setterSpot: ballTargets[1] ?? null,
         setTarget: ballTargets[2] ?? null,
         spikeTarget,
+        roles,
       }),
     );
     usePlayStore.getState().setDuration(QUICK_TIMING.totalMs);

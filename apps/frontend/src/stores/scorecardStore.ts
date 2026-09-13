@@ -1,7 +1,8 @@
 import { create } from 'zustand';
-import type { PlayerRole } from '@tempo/shared-types';
+import { asFormation, type PlayerRole } from '@tempo/shared-types';
 import {
   STAFF_ROLES,
+  TIMEOUT_SECONDS,
   addPoint,
   applyFormation,
   assignPosition,
@@ -10,7 +11,9 @@ import {
   createStaff,
   formationRoles,
   nextSet,
+  resetClock,
   substitute,
+  toggleClock,
   undoPoint,
   useSub,
   useTimeout,
@@ -25,14 +28,17 @@ function load(): MatchState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return createMatch();
-    const parsed = JSON.parse(raw) as Partial<MatchState>;
+    const parsed = JSON.parse(raw) as Partial<MatchState> & { formation?: string };
     const base = createMatch(parsed.config);
     if (typeof parsed.homeScore !== 'number' || !Array.isArray(parsed.events)) return base;
     return {
       ...base,
       ...parsed,
       config: base.config,
-      formation: parsed.formation ?? '5-1',
+      formations: {
+        home: asFormation(parsed.formations?.home ?? parsed.formation),
+        away: asFormation(parsed.formations?.away ?? parsed.formation),
+      },
       rosters: {
         home: parsed.rosters?.home ?? base.rosters.home,
         away: parsed.rosters?.away ?? base.rosters.away,
@@ -87,13 +93,20 @@ interface ScorecardStore {
   addPoint: (side: TeamSide) => void;
   undo: () => void;
   timeout: (side: TeamSide) => void;
+  clearTimeoutTimer: () => void;
+  toggleClock: () => void;
+  resetClock: () => void;
   sub: (side: TeamSide) => void;
   finishSet: () => void;
   setTeamName: (side: TeamSide, name: string) => void;
   setBestOf: (bestOf: 3 | 5) => void;
-  setFormation: (formation: MatchState['formation']) => void;
+  setFormation: (side: TeamSide, formation: MatchState['formations']['home']) => void;
   reset: () => void;
   addPlayer: (side: TeamSide, role?: PlayerRole) => void;
+  createBenchPlayer: (
+    side: TeamSide,
+    data: { name: string; number: string; role: PlayerRole },
+  ) => string;
   updatePlayer: (side: TeamSide, id: string, patch: Partial<TeamPlayer>) => void;
   removePlayer: (side: TeamSide, id: string) => void;
   toggleStarter: (side: TeamSide, id: string) => void;
@@ -115,7 +128,23 @@ export const useScorecardStore = create<ScorecardStore>((set, get) => ({
 
   addPoint: (side) => set((state) => ({ match: persist(addPoint(state.match, side)) })),
   undo: () => set((state) => ({ match: persist(undoPoint(state.match)) })),
-  timeout: (side) => set((state) => ({ match: persist(useTimeout(state.match, side)) })),
+  timeout: (side) =>
+    set((state) => {
+      const next = useTimeout(state.match, side);
+      if (next === state.match) return {};
+      return {
+        match: persist({
+          ...next,
+          timeoutTimer: { side, endsAt: Date.now() + TIMEOUT_SECONDS * 1000 },
+        }),
+      };
+    }),
+  clearTimeoutTimer: () =>
+    set((state) => ({
+      match: persist({ ...state.match, timeoutTimer: { side: null, endsAt: null } }),
+    })),
+  toggleClock: () => set((state) => ({ match: persist(toggleClock(state.match)) })),
+  resetClock: () => set((state) => ({ match: persist(resetClock(state.match)) })),
   sub: (side) => set((state) => ({ match: persist(useSub(state.match, side)) })),
   finishSet: () => set((state) => ({ match: persist(nextSet(state.match)) })),
 
@@ -133,26 +162,32 @@ export const useScorecardStore = create<ScorecardStore>((set, get) => ({
   setBestOf: (bestOf) =>
     set(() => ({ match: persist(createMatch({ ...get().match.config, bestOf })) })),
 
-  setFormation: (formation) =>
-    set((state) => ({ match: persist(applyFormation(state.match, formation)) })),
+  setFormation: (side, formation) =>
+    set((state) => ({
+      match: persist(applyFormation(state.match, side, formation)),
+    })),
 
   reset: () =>
     set(() => {
       const current = get().match;
-      const next = createMatch(current.config);
-      return { match: persist(applyFormation(next, current.formation)) };
+      let next = createMatch(current.config);
+      next = applyFormation(next, 'home', current.formations.home);
+      next = applyFormation(next, 'away', current.formations.away);
+      return { match: persist(next) };
     }),
 
-  addPlayer: (side, role = 'outside') =>
+  addPlayer: (side, role) =>
     set((state) => {
       const roster = state.match.rosters[side];
       const lineup = state.match.lineups[side];
       const emptyIndex = lineup.indexOf(null);
+      const resolvedRole =
+        role ?? (emptyIndex !== -1 ? formationRoles(state.match.formations[side])[emptyIndex] : 'outside');
       const player = createPlayer(
         '',
         String(roster.players.length + 1),
         emptyIndex !== -1,
-        role,
+        resolvedRole ?? 'outside',
       );
       const nextRoster = { ...roster, players: [...roster.players, player] };
       const nextLineup = [...lineup];
@@ -165,6 +200,23 @@ export const useScorecardStore = create<ScorecardStore>((set, get) => ({
         }),
       };
     }),
+
+  createBenchPlayer: (side, data) => {
+    const player = createPlayer(data.name, data.number, false, data.role);
+    set((state) => ({
+      match: persist({
+        ...state.match,
+        rosters: {
+          ...state.match.rosters,
+          [side]: {
+            ...state.match.rosters[side],
+            players: [...state.match.rosters[side].players, player],
+          },
+        },
+      }),
+    }));
+    return player.id;
+  },
 
   updatePlayer: (side, id, patch) =>
     set((state) => ({
@@ -220,7 +272,7 @@ export const useScorecardStore = create<ScorecardStore>((set, get) => ({
 
   quickFill: (side) =>
     set((state) => {
-      const roles = formationRoles(state.match.formation);
+      const roles = formationRoles(state.match.formations[side]);
       const players = Array.from({ length: 9 }, (_, index) =>
         createPlayer('', String(index + 1), index < 6, roles[index] ?? 'outside'),
       );

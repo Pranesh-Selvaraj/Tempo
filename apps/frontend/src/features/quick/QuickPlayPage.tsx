@@ -7,13 +7,12 @@ import {
   FORMATION_INFO,
   FORMATIONS,
   type CameraPresetId,
-  type Formation,
 } from '@tempo/shared-types';
 import { cn } from '../../lib/cn';
 import { Button, Select, TextInput } from '../../components/ui';
 import { useCameraStore } from '../../stores/cameraStore';
 import { useEditorStore } from '../../stores/editorStore';
-import { useQuickStore } from '../../stores/quickStore';
+import { useQuickStore, type QuickFormation } from '../../stores/quickStore';
 import { Scene } from '../court/Scene';
 import { QuickHUD } from './QuickHUD';
 import { QuickRoster } from './QuickRoster';
@@ -58,6 +57,7 @@ export function QuickPlayPage() {
   const setFormation = useQuickStore((state) => state.setFormation);
   const setLibero = useQuickStore((state) => state.setLibero);
   const toggleRoster = useQuickStore((state) => state.toggleRoster);
+  const hasCustom = useQuickStore((state) => Object.keys(state.customFormations).length > 0);
 
   useEffect(() => {
     useQuickStore.getState().start();
@@ -163,8 +163,12 @@ export function QuickPlayPage() {
           <Select
             value={formation}
             disabled={step === 'play'}
-            title={FORMATION_INFO[formation].description}
-            onChange={(event) => setFormation(event.target.value as Formation)}
+            title={
+              formation === 'custom'
+                ? 'Your saved custom formation'
+                : FORMATION_INFO[formation].description
+            }
+            onChange={(event) => setFormation(event.target.value as QuickFormation)}
             className="w-24"
           >
             {FORMATIONS.map((value) => (
@@ -172,6 +176,7 @@ export function QuickPlayPage() {
                 {value}
               </option>
             ))}
+            {hasCustom && <option value="custom">Custom</option>}
           </Select>
           <Button
             variant={libero ? 'primary' : 'default'}

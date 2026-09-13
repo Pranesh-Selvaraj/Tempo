@@ -22,6 +22,7 @@ export function QuickRoster() {
   const ballTargets = useQuickStore((state) => state.ballTargets);
   const spikeTarget = useQuickStore((state) => state.spikeTarget);
   const receiveFormation = useQuickStore((state) => state.receiveFormation);
+  const roles = useQuickStore((state) => state.roles);
   const players = usePlayStore((state) => state.players);
 
   const rows = useMemo(
@@ -32,8 +33,9 @@ export function QuickRoster() {
         setTarget: ballTargets[2] ?? null,
         spikeTarget,
         receiveFormation,
+        roles,
       }),
-    [players, ballTargets, spikeTarget, receiveFormation],
+    [players, ballTargets, spikeTarget, receiveFormation, roles],
   );
 
   if (!open) return null;
@@ -63,7 +65,7 @@ export function QuickRoster() {
         <span className="chip">
           Front {frontRow} · Back {home.length - frontRow}
         </span>
-        <span className="chip">{FORMATION_INFO[formation].short}</span>
+        <span className="chip">{formation === 'custom' ? 'Custom formation' : FORMATION_INFO[formation].short}</span>
         <span className={cn('chip', libero && 'border-violet-400/40 text-violet-200')}>
           {libero ? 'Libero on' : 'No libero'}
         </span>

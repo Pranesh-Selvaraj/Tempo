@@ -15,12 +15,12 @@
 
 [data-theme='midnight'] {
   color-scheme: dark;
-  --panel-950: 7 11 20;
-  --panel-900: 11 17 32;
-  --panel-850: 17 24 39;
-  --panel-800: 21 29 46;
-  --panel-700: 30 41 59;
-  --panel-600: 51 65 85;
+  --panel-950: 9 14 30;
+  --panel-900: 15 23 45;
+  --panel-850: 22 33 58;
+  --panel-800: 30 43 76;
+  --panel-700: 42 58 96;
+  --panel-600: 70 92 135;
 }
 
 [data-theme='graphite'] {
@@ -37,6 +37,11 @@ html,
 body,
 #root {
   height: 100%;
+}
+
+body {
+  background-color: rgb(var(--panel-950));
+  transition: background-color 180ms ease;
 }
 
 body {

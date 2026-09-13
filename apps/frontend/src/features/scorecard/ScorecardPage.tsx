@@ -1,7 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowLeft,
+  Pause,
+  Play,
   Plus,
   RotateCcw,
   Timer,
@@ -26,10 +28,12 @@ import {
   SET_SUBS,
   SET_TIMEOUTS,
   STAFF_ROLES,
+  clockElapsedMs,
   computeAnalytics,
   computePlayerStats,
   currentSetNumber,
   expectedRoleAt,
+  formatClock,
   isDecidingSet,
   matchPoint,
   maxSets,
@@ -38,9 +42,12 @@ import {
   rotationPositionLabel,
   setTarget,
   setsWon,
+  substitutionLog,
   switchSidesAt,
+  timeoutTimerRemainingMs,
   type TeamSide,
 } from './match';
+import { useTicker } from './useTicker';
 
 const ROLE_SHORT: Record<PlayerRole, string> = {
   setter: 'S',
@@ -259,8 +266,37 @@ function Analytics() {
         </div>
 
         <PlayerStatsSection />
+        <SubstitutionLogSection />
       </div>
     </Panel>
+  );
+}
+
+function SubstitutionLogSection() {
+  const match = useScorecardStore((state) => state.match);
+  const entries = useMemo(() => substitutionLog(match), [match]);
+  if (entries.length === 0) return null;
+
+  return (
+    <div>
+      <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+        Substitutions
+      </p>
+      <div className="space-y-1">
+        {entries.map((entry, index) => (
+          <p key={index} className="text-[11px] text-slate-400">
+            <span className="chip mr-1">Set {entry.setId}</span>
+            <span className={entry.side === 'home' ? 'text-cyan-300' : 'text-orange-300'}>
+              {entry.side === 'home' ? match.config.homeName : match.config.awayName}
+            </span>{' '}
+            · {entry.outName} → {entry.inName}
+            <span className="ml-1 text-slate-600">
+              ({entry.homeScore}–{entry.awayScore})
+            </span>
+          </p>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -298,7 +334,8 @@ function PlayerStatsSection() {
                     <th className="text-left font-medium">Player</th>
                     <th className="text-right font-medium">Serve pts</th>
                     <th className="text-right font-medium">Rallies</th>
-                    <th className="text-right font-medium">Subs</th>
+                    <th className="text-right font-medium">Part</th>
+                    <th className="text-right font-medium">Subs in/out</th>
                     <th className="text-right font-medium">Best run</th>
                   </tr>
                 </thead>
@@ -306,6 +343,13 @@ function PlayerStatsSection() {
                   {rows.map((stat) => (
                     <tr key={stat.playerId} className="border-t border-white/5">
                       <td className="py-1 text-slate-300">
+                        <span
+                          className={cn(
+                            'mr-1 inline-block h-1.5 w-1.5 rounded-full align-middle',
+                            stat.onCourt ? 'bg-emerald-400' : 'bg-slate-700',
+                          )}
+                          title={stat.onCourt ? 'On court' : 'Bench'}
+                        />
                         <span className="mr-1 text-[9px] font-semibold uppercase text-slate-500">
                           {ROLE_SHORT[stat.role]}
                         </span>
@@ -316,7 +360,12 @@ function PlayerStatsSection() {
                       <td className="text-right tabular-nums text-slate-400">
                         {stat.ralliesOnCourt}
                       </td>
-                      <td className="text-right tabular-nums text-slate-400">{stat.subsIn}</td>
+                      <td className="text-right tabular-nums text-slate-400">
+                        {stat.participation}%
+                      </td>
+                      <td className="text-right tabular-nums text-slate-400">
+                        {stat.subsIn}/{stat.subsOut}
+                      </td>
                       <td className="text-right tabular-nums text-slate-400">
                         {stat.maxServingRun}
                       </td>
@@ -359,8 +408,8 @@ function PositionForm({
   return (
     <div className="space-y-4">
       <p className="text-[11px] text-slate-400">
-        Formation <span className="font-semibold text-slate-200">{match.formation}</span> expects a{' '}
-        <span className="text-sky-300">{ROLE_LABELS[expected]}</span> in this slot.
+        Formation <span className="font-semibold text-slate-200">{match.formations[side]}</span>{' '}
+        expects a <span className="text-sky-300">{ROLE_LABELS[expected]}</span> in this slot.
       </p>
 
       <div className="grid grid-cols-[80px_1fr] gap-2">
@@ -451,6 +500,7 @@ function PositionForm({
 
 function CourtPositionMap({ side }: { side: TeamSide }) {
   const match = useScorecardStore((state) => state.match);
+  const setFormation = useScorecardStore((state) => state.setFormation);
   const [editing, setEditing] = useState<number | null>(null);
   const rotation = side === 'home' ? match.homeRotation : match.awayRotation;
   const roster = match.rosters[side];
@@ -474,7 +524,19 @@ function CourtPositionMap({ side }: { side: TeamSide }) {
         <p className={cn('text-xs font-semibold', side === 'home' ? 'text-cyan-300' : 'text-orange-300')}>
           {teamName}
         </p>
-        <span className="chip">{match.formation}</span>
+        <Select
+          value={match.formations[side]}
+          title={FORMATION_INFO[match.formations[side]].description}
+          aria-label={`${teamName} formation`}
+          onChange={(event) => setFormation(side, event.target.value as Formation)}
+          className="h-7 w-24 py-0 text-[11px]"
+        >
+          {FORMATIONS.map((value) => (
+            <option key={value} value={value} title={FORMATION_INFO[value].description}>
+              {value}
+            </option>
+          ))}
+        </Select>
         <span className="chip">
           Rotation {rotation} · {rotationPositionLabel(rotation)}
         </span>
@@ -731,12 +793,18 @@ function RosterSetupModal({ open, onClose }: { open: boolean; onClose: () => voi
 function SubstitutionModal({ side, onClose }: { side: TeamSide | null; onClose: () => void }) {
   const match = useScorecardStore((state) => state.match);
   const substitute = useScorecardStore((state) => state.substitute);
+  const createBenchPlayer = useScorecardStore((state) => state.createBenchPlayer);
   const [outId, setOutId] = useState<string | null>(null);
   const [inId, setInId] = useState<string | null>(null);
+  const [newNumber, setNewNumber] = useState('');
+  const [newName, setNewName] = useState('');
+  const [newRole, setNewRole] = useState<PlayerRole>('outside');
 
   const close = () => {
     setOutId(null);
     setInId(null);
+    setNewNumber('');
+    setNewName('');
     onClose();
   };
 
@@ -804,6 +872,51 @@ function SubstitutionModal({ side, onClose }: { side: TeamSide | null; onClose: 
           {bench.length === 0 && (
             <p className="text-[11px] text-slate-500">No bench players available.</p>
           )}
+
+          <div className="mt-2 space-y-1.5 rounded-lg border border-dashed border-white/15 p-2">
+            <p className="field-label">Add substitute</p>
+            <div className="flex items-center gap-1">
+              <TextInput
+                value={newNumber}
+                placeholder="#"
+                className="w-12 text-center"
+                onChange={(event) => setNewNumber(event.target.value)}
+              />
+              <TextInput
+                value={newName}
+                placeholder="Name"
+                className="flex-1"
+                onChange={(event) => setNewName(event.target.value)}
+              />
+              <Select
+                value={newRole}
+                className="w-24"
+                onChange={(event) => setNewRole(event.target.value as PlayerRole)}
+              >
+                {(Object.keys(ROLE_LABELS) as PlayerRole[]).map((value) => (
+                  <option key={value} value={value}>
+                    {ROLE_LABELS[value]}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <Button
+              className="w-full"
+              onClick={() => {
+                const id = createBenchPlayer(side, {
+                  name: newName.trim(),
+                  number: newNumber.trim(),
+                  role: newRole,
+                });
+                setInId(id);
+                setNewName('');
+                setNewNumber('');
+              }}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add to bench &amp; select
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -831,11 +944,21 @@ export function ScorecardPage() {
   const finishSet = useScorecardStore((state) => state.finishSet);
   const setTeamName = useScorecardStore((state) => state.setTeamName);
   const setBestOf = useScorecardStore((state) => state.setBestOf);
-  const setFormation = useScorecardStore((state) => state.setFormation);
   const reset = useScorecardStore((state) => state.reset);
+  const toggleClock = useScorecardStore((state) => state.toggleClock);
+  const resetClock = useScorecardStore((state) => state.resetClock);
+  const clearTimeoutTimer = useScorecardStore((state) => state.clearTimeoutTimer);
   const sub = useScorecardStore((state) => state.sub);
   const [rosterOpen, setRosterOpen] = useState(false);
   const [subSide, setSubSide] = useState<TeamSide | null>(null);
+
+  const now = useTicker(match.clock.running || match.timeoutTimer.endsAt !== null);
+  const elapsedMs = clockElapsedMs(match, now);
+  const timeoutRemaining = timeoutTimerRemainingMs(match, now);
+
+  useEffect(() => {
+    if (match.timeoutTimer.endsAt !== null && timeoutRemaining <= 0) clearTimeoutTimer();
+  }, [match.timeoutTimer.endsAt, timeoutRemaining, clearTimeoutTimer]);
 
   const handleSub = (side: TeamSide) => {
     if (match.rosters[side].players.length >= 6) setSubSide(side);
@@ -849,8 +972,8 @@ export function ScorecardPage() {
   const shouldSwitch = switchAt !== null && (match.homeScore >= switchAt || match.awayScore >= switchAt);
 
   return (
-    <div className="scroll-thin h-full overflow-y-auto bg-black">
-      <header className="sticky top-0 z-20 flex flex-wrap items-center gap-2 border-b border-white/5 bg-black/90 px-5 py-3 backdrop-blur">
+    <div className="scroll-thin h-full overflow-y-auto bg-panel-950">
+      <header className="sticky top-0 z-20 flex flex-wrap items-center gap-2 border-b border-white/5 bg-panel-900/90 px-5 py-3 backdrop-blur">
         <Link to="/" className="btn btn-ghost">
           <ArrowLeft className="h-4 w-4" />
         </Link>
@@ -881,8 +1004,24 @@ export function ScorecardPage() {
       </header>
 
       <div className="mx-auto max-w-5xl space-y-4 p-5">
+        {match.timeoutTimer.side && timeoutRemaining > 0 && (
+          <div className="panel flex items-center gap-3 border-amber-400/40 p-4">
+            <Timer className="h-6 w-6 text-amber-300" />
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-amber-200">Timeout</p>
+              <p className="text-sm font-semibold text-slate-100">
+                {match.timeoutTimer.side === 'home' ? match.config.homeName : match.config.awayName}
+              </p>
+            </div>
+            <p className="ml-auto font-mono text-4xl font-black tabular-nums text-amber-300">
+              {Math.ceil(timeoutRemaining / 1000)}
+            </p>
+            <Button onClick={clearTimeoutTimer}>End</Button>
+          </div>
+        )}
+
         <Panel title="Match setup">
-          <div className="grid gap-3 sm:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-3">
             <Field label="Home team">
               <TextInput
                 value={match.config.homeName}
@@ -904,18 +1043,6 @@ export function ScorecardPage() {
                   { value: '5', label: 'Best of 5' },
                 ]}
               />
-            </Field>
-            <Field label="Formation" hint={FORMATION_INFO[match.formation].short}>
-              <Select
-                value={match.formation}
-                onChange={(event) => setFormation(event.target.value as Formation)}
-              >
-                {FORMATIONS.map((value) => (
-                  <option key={value} value={value} title={FORMATION_INFO[value].description}>
-                    {value} — {FORMATION_INFO[value].short}
-                  </option>
-                ))}
-              </Select>
             </Field>
           </div>
         </Panel>
@@ -943,6 +1070,28 @@ export function ScorecardPage() {
               <p className="chip border-amber-400/40 text-amber-200">Switch sides at {switchAt}</p>
             )}
             <RotationTracker rotation={match.homeRotation} />
+
+            <div className="w-full border-t border-white/5 pt-3 text-center">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                Match clock
+              </p>
+              <p className="my-1 font-mono text-3xl font-black tabular-nums text-slate-100">
+                {formatClock(elapsedMs)}
+              </p>
+              <div className="flex justify-center gap-1">
+                <Button onClick={toggleClock}>
+                  {match.clock.running ? (
+                    <Pause className="h-3.5 w-3.5" />
+                  ) : (
+                    <Play className="h-3.5 w-3.5" />
+                  )}
+                  {match.clock.running ? 'Pause' : 'Start'}
+                </Button>
+                <Button onClick={resetClock} title="Reset clock">
+                  <RotateCcw className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
           </div>
 
           <TeamPanel side="away" onSub={handleSub} />

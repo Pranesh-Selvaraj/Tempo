@@ -256,6 +256,7 @@ function MovementArrows() {
   const receiveFormation = useQuickStore((state) => state.receiveFormation);
   const ballTargets = useQuickStore((state) => state.ballTargets);
   const spikeTarget = useQuickStore((state) => state.spikeTarget);
+  const roles = useQuickStore((state) => state.roles);
   const players = usePlayStore((state) => state.players);
 
   const arrows = useMemo(() => {
@@ -281,7 +282,9 @@ function MovementArrows() {
       .filter((arrow): arrow is NonNullable<typeof arrow> => arrow !== null);
   }, [step, receiveFormation, players]);
 
-  const spiker = spikerFor(players, ballTargets[2] ?? null, spikeTarget);
+  const spiker = roles.spiker
+    ? players.find((player) => player.playerId === roles.spiker) ?? null
+    : spikerFor(players, ballTargets[2] ?? null, spikeTarget);
 
   return (
     <group>
