@@ -9,9 +9,10 @@ Built by **Pranesh Selvaraj** — volleyball player and developer ([@Pranesh-Sel
 ## Features
 
 - **Interactive play mode** — skip setup and start on the court: drag the receive formation, tap three ball targets, pick the block count, mark the spike, watch it animate, then save or record
-- **OLED-first theme** — a true-black interface tuned for OLED screens, with bright colour-coded plays, players and ball paths
+- **Theme options** — OLED Black, Midnight and Graphite, switchable from any header and remembered per device
 - **Formation systems** — 5-1, 6-2, 4-2 and 6-6 base positions per play, with or without a libero
 - **Match scorecard & analytics** — live rally scoring, sets, rotation tracking, timeouts, substitutions, sideout %, points by rotation and longest runs (saved on the device)
+- **Optional lineups & staff** — player names, jersey numbers, starters, bench, coaches and support staff; substitutions are player-for-player and per-player stats stay accurate across subs (service points, rallies on court, subs in, best serving run)
 - **Library analytics** — play counts, categories and sharing stats at a glance
 - **Roster & positions** — live panel showing who is who, their role, current zone (4–3–2 / 5–6–1) and task (receiver / setter / spiker / blocker)
 - **Undo / redo everywhere in quick mode** — player moves, ball targets, blocks and step changes (`Ctrl+Z` / `Ctrl+Shift+Z`), plus draggable ball markers and arrow-key nudging
@@ -19,7 +20,7 @@ Built by **Pranesh Selvaraj** — volleyball player and developer ([@Pranesh-Sel
 - **Authored ball trajectories** — click out Catmull-Rom bezier paths per action (serve / pass / set / attack / block / dig), no physics engine
 - **Timeline keyframe animation** — record player positions + poses, scrub, retime, slow motion, frame stepping
 - **Procedural player poses** — ready, pass, set, serve, approach, jump, spike, block, dive, celebrate
-- **Camera choreography** — coaching view, top-down, attacker POV, setter POV, sideline + authored dolly paths with captured keys
+- **Camera angles** — coaching view, top-down, home/away end, attacker and setter POV, sideline, plus authored dolly paths with captured keys
 - **Teaching layer** — phase markers with coaching notes, 3D annotations with visibility windows, movement ghost trails, court zone overlay
 - **Client-side video export** — MediaRecorder captures the canvas, ffmpeg.wasm converts to MP4 (WhatsApp / Instagram / Presentation / Slow-mo / GIF presets) or GLB
 - **Studio render** — frame-perfect, deterministic WebCodecs (H.264/VP9) encoding via mp4-muxer, with an in-browser background render queue
@@ -89,11 +90,11 @@ Open **Library → Interactive play** to skip play creation entirely. You start 
 3. Drag players to their spike-time spots (dashed lines show each run), choose 0–3 blocks and tap where the spike lands.
 4. Press **Watch the play** — serve, pass, set and spike animate with the ball. Then save it as a normal play or jump straight to recording a video.
 
-Undo/redo covers every step (`Ctrl+Z` / `Ctrl+Shift+Z`), the roster panel explains who is who and which zone they play, and ball markers can be dragged or nudged with the arrow keys. Switch formation (5-1 / 6-2 / 4-2 / 6-6) and toggle the libero right from the header.
+Undo/redo covers every step (`Ctrl+Z` / `Ctrl+Shift+Z`), the roster panel explains who is who and which zone they play, and ball markers can be dragged or nudged with the arrow keys. Switch formation (5-1 / 6-2 / 4-2 / 6-6) and toggle the libero right from the header, and jump between camera angles — Coaching, Top Down, Home End, Away End or player POVs — with one tap.
 
 ### Match scorecard
 
-Open **Scorecard** from the library header (or `/scorecard`) to run a live match on any device: rally scoring, sets and the deciding set, rotation tracking, timeouts, substitutions and analytics — sideout percentage, points by rotation and longest scoring runs. The match is saved in the browser, so a refresh at the gym does not lose the score.
+Open **Scorecard** from the library header (or `/scorecard`) to run a live match on any device: rally scoring, sets and the deciding set, rotation tracking, timeouts, substitutions and analytics — sideout percentage, points by rotation and longest scoring runs. **Lineups & staff** is optional: add player names and jersey numbers, mark six starters, fill the bench, and list coaches and support staff. Substitutions become player-for-player (pick who comes out and who comes in), and the player stats table tracks service points, rallies played, subs and best serving runs correctly across substitutions. The match is saved in the browser, so a refresh at the gym does not lose the score.
 
 ### Player models (Sprint 5)
 
@@ -166,7 +167,7 @@ packages/
 | 9 · Presentation mode (PWA) | ✅ manifest, service worker, full-screen route, chapter bar |
 | 10 · Studio export | ✅ frame-by-frame WebCodecs render, background queue, upload to `/uploads` or R2 |
 | 11 · Interactive play | ✅ start-on-court quick mode, tap-to-target ball paths, block stepper, undo/redo, roster panel, save → advanced editor |
-| 12 · Volleyball suite | ✅ OLED black theme, formation systems (5-1 / 6-2 / 4-2 / 6-6) with libero toggle, live scorecard + analytics, library stats |
+| 12 · Volleyball suite | ✅ theme options (OLED / Midnight / Graphite), formation systems (5-1 / 6-2 / 4-2 / 6-6) with libero, quick-play camera angles, live scorecard with optional lineups & staff + per-player analytics, library stats |
 
 ## Author
 

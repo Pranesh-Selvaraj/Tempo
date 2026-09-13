@@ -2,8 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+:root,
+[data-theme='oled'] {
   color-scheme: dark;
+  --panel-950: 0 0 0;
+  --panel-900: 5 5 5;
+  --panel-850: 10 10 10;
+  --panel-800: 16 16 16;
+  --panel-700: 28 28 28;
+  --panel-600: 46 46 46;
+}
+
+[data-theme='midnight'] {
+  color-scheme: dark;
+  --panel-950: 7 11 20;
+  --panel-900: 11 17 32;
+  --panel-850: 17 24 39;
+  --panel-800: 21 29 46;
+  --panel-700: 30 41 59;
+  --panel-600: 51 65 85;
+}
+
+[data-theme='graphite'] {
+  color-scheme: dark;
+  --panel-950: 9 9 11;
+  --panel-900: 18 18 21;
+  --panel-850: 24 24 27;
+  --panel-800: 32 32 36;
+  --panel-700: 45 45 50;
+  --panel-600: 66 66 72;
 }
 
 html,

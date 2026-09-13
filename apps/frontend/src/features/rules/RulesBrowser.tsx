@@ -4,6 +4,7 @@ import { ArrowLeft, BookOpen, Download, FileText, Search } from 'lucide-react';
 import { RULE_CATEGORIES } from '@tempo/shared-types';
 import { cn } from '../../lib/cn';
 import { trpc } from '../../lib/trpc';
+import { ThemeSwitcher } from '../../components/ThemeSwitcher';
 import { Modal, Panel, TextInput } from '../../components/ui';
 
 const RULE_BOOK_URL = '/rules/FIVB-Volleyball_Rules2025_2028-EN-v05.pdf';
@@ -88,6 +89,7 @@ export function RulesBrowser() {
             className="pl-7"
           />
         </div>
+        <ThemeSwitcher compact />
       </header>
 
       <div className="mx-auto flex max-w-6xl gap-5 p-5">

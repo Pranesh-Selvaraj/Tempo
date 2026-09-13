@@ -3,7 +3,9 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { Bloom, EffectComposer, Vignette } from '@react-three/postprocessing';
 import { bridge } from '../../lib/bridge';
+import { THEME_INFO } from '../../lib/theme';
 import { useEditorStore } from '../../stores/editorStore';
+import { useThemeStore } from '../../stores/themeStore';
 import { CameraPathEditor } from '../camera/CameraPathEditor';
 import { CameraRig } from '../camera/CameraRig';
 import { ArrowDrawer } from '../designer/ArrowDrawer';
@@ -60,6 +62,7 @@ function Effects() {
 export function Scene({ editing = true, quick = false }: { editing?: boolean; quick?: boolean }) {
   const setEditing = useEditorStore((state) => state.setEditing);
   const renderJobActive = useEditorStore((state) => state.renderJobActive);
+  const sceneTheme = THEME_INFO[useThemeStore((state) => state.theme)].scene;
 
   useEffect(() => {
     setEditing(editing);
@@ -81,8 +84,8 @@ export function Scene({ editing = true, quick = false }: { editing?: boolean; qu
         bridge.root = state;
       }}
     >
-      <color attach="background" args={['#000000']} />
-      <fog attach="fog" args={['#000000', 30, 90]} />
+      <color attach="background" args={[sceneTheme.background]} />
+      <fog attach="fog" args={[sceneTheme.fog, 30, 90]} />
 
       <Lighting />
       <Court />

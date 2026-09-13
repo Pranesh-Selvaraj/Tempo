@@ -6,6 +6,17 @@ import { useEditorStore } from '../../stores/editorStore';
 
 const D = Math.PI / 180;
 
+const SKIN_TONES = ['#f2c9a0', '#e5b088', '#c68863', '#a9714b', '#8d5a3b', '#f7d7bd'];
+const HAIR_COLORS = ['#151515', '#2f241b', '#4a3423', '#0f1419', '#5b4636', '#3b2a1a'];
+
+function hashString(value: string): number {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+  return hash;
+}
+
 type Joint = [number, number, number];
 
 interface PoseTarget {
@@ -250,9 +261,12 @@ export function MannequinPlayer({ state }: { state: PlayerState }) {
     }
   });
 
+  const seed = hashString(state.playerId);
+  const skin = SKIN_TONES[seed % SKIN_TONES.length]!;
+  const hair = HAIR_COLORS[(seed >> 3) % HAIR_COLORS.length]!;
   const jersey = state.playerId.startsWith('opp') ? '#f97316' : ROLE_COLORS[state.role];
   const shorts = '#111111';
-  const skin = '#f0c8a0';
+  const shoes = state.playerId.startsWith('opp') ? '#ea580c' : '#e2e8f0';
 
   return (
     <group>
@@ -270,9 +284,17 @@ export function MannequinPlayer({ state }: { state: PlayerState }) {
               <meshStandardMaterial color={shorts} roughness={0.8} />
             </mesh>
             <group ref={leg.knee} position={[0, -0.46, 0]}>
+              <mesh position={[0, -0.02, 0]} castShadow>
+                <sphereGeometry args={[0.075, 12, 12]} />
+                <meshStandardMaterial color={shorts} roughness={0.7} />
+              </mesh>
               <mesh position={[0, -0.22, 0]} castShadow>
                 <capsuleGeometry args={[0.072, 0.3, 4, 10]} />
                 <meshStandardMaterial color={skin} roughness={0.6} />
+              </mesh>
+              <mesh position={[0, -0.43, -0.06]} castShadow>
+                <boxGeometry args={[0.11, 0.07, 0.25]} />
+                <meshStandardMaterial color={shoes} roughness={0.55} />
               </mesh>
             </group>
           </group>
@@ -290,15 +312,42 @@ export function MannequinPlayer({ state }: { state: PlayerState }) {
             <capsuleGeometry args={[0.2, 0.36, 4, 14]} />
             <meshStandardMaterial color={jersey} roughness={0.65} />
           </mesh>
+          <mesh position={[0, 0.44, 0]} castShadow>
+            <cylinderGeometry args={[0.1, 0.11, 0.05, 14]} />
+            <meshStandardMaterial color={jersey} roughness={0.65} />
+          </mesh>
+
           {/* Head + neck */}
-          <mesh position={[0, 0.5, 0]} castShadow>
-            <cylinderGeometry args={[0.05, 0.06, 0.1, 10]} />
+          <mesh position={[0, 0.52, 0]} castShadow>
+            <cylinderGeometry args={[0.05, 0.062, 0.1, 10]} />
             <meshStandardMaterial color={skin} roughness={0.6} />
           </mesh>
-          <mesh position={[0, 0.62, 0]} castShadow>
-            <sphereGeometry args={[0.12, 18, 18]} />
-            <meshStandardMaterial color={skin} roughness={0.55} />
-          </mesh>
+          <group position={[0, 0.65, 0]}>
+            <mesh castShadow scale={[0.94, 1.06, 1]}>
+              <sphereGeometry args={[0.118, 20, 20]} />
+              <meshStandardMaterial color={skin} roughness={0.55} />
+            </mesh>
+            <mesh position={[0, 0.035, 0.01]} scale={[1.02, 0.72, 1.02]}>
+              <sphereGeometry args={[0.12, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
+              <meshStandardMaterial color={hair} roughness={0.85} />
+            </mesh>
+            {[-1, 1].map((side) => (
+              <mesh key={side} position={[side * 0.112, -0.005, 0]}>
+                <sphereGeometry args={[0.028, 10, 10]} />
+                <meshStandardMaterial color={skin} roughness={0.6} />
+              </mesh>
+            ))}
+            {[-1, 1].map((side) => (
+              <mesh key={`eye${side}`} position={[side * 0.045, 0.015, -0.104]}>
+                <sphereGeometry args={[0.014, 8, 8]} />
+                <meshStandardMaterial color="#1f2937" roughness={0.4} />
+              </mesh>
+            ))}
+            <mesh position={[0, -0.015, -0.115]} rotation={[Math.PI / 2, 0, 0]}>
+              <coneGeometry args={[0.02, 0.05, 8]} />
+              <meshStandardMaterial color={skin} roughness={0.6} />
+            </mesh>
+          </group>
 
           {/* Arms */}
           {(
@@ -308,13 +357,21 @@ export function MannequinPlayer({ state }: { state: PlayerState }) {
             ] as const
           ).map((arm) => (
             <group key={arm.side} ref={arm.shoulder} position={[arm.side * 0.23, 0.5, 0]}>
-              <mesh position={[0, -0.15, 0]} castShadow>
-                <capsuleGeometry args={[0.055, 0.18, 4, 10]} />
-                <meshStandardMaterial color={skin} roughness={0.6} />
+              <mesh castShadow>
+                <sphereGeometry args={[0.075, 12, 12]} />
+                <meshStandardMaterial color={jersey} roughness={0.65} />
+              </mesh>
+              <mesh position={[0, -0.13, 0]} castShadow>
+                <capsuleGeometry args={[0.058, 0.16, 4, 10]} />
+                <meshStandardMaterial color={jersey} roughness={0.65} />
               </mesh>
               <group ref={arm.elbow} position={[0, -0.3, 0]}>
-                <mesh position={[0, -0.15, 0]} castShadow>
-                  <capsuleGeometry args={[0.048, 0.18, 4, 10]} />
+                <mesh position={[0, -0.13, 0]} castShadow>
+                  <capsuleGeometry args={[0.048, 0.16, 4, 10]} />
+                  <meshStandardMaterial color={skin} roughness={0.6} />
+                </mesh>
+                <mesh position={[0, -0.27, 0]} castShadow>
+                  <sphereGeometry args={[0.055, 12, 12]} />
                   <meshStandardMaterial color={skin} roughness={0.6} />
                 </mesh>
               </group>

@@ -23,7 +23,7 @@ export const CameraPathSchema = z.object({
 export type CameraPath = z.infer<typeof CameraPathSchema>;
 
 /** Static (non-animated) camera presets available from the view dropdown. */
-export const CAMERA_PRESETS = ['coach', 'top', 'attacker', 'setter', 'sideline'] as const;
+export const CAMERA_PRESETS = ['coach', 'top', 'home', 'away', 'attacker', 'setter', 'sideline'] as const;
 export type CameraPresetId = (typeof CAMERA_PRESETS)[number];
 
 export interface CameraPreset {
@@ -49,19 +49,33 @@ export const CAMERA_PRESETS_MAP: Record<CameraPresetId, CameraPreset> = {
     target: [0, 0, 0],
     fov: 40,
   },
+  home: {
+    id: 'home',
+    label: 'Home End',
+    position: [11.5, 6.5, 0],
+    target: [-1, 1.4, 0],
+    fov: 50,
+  },
+  away: {
+    id: 'away',
+    label: 'Away End',
+    position: [-11.5, 6.5, 0],
+    target: [1, 1.4, 0],
+    fov: 50,
+  },
   attacker: {
     id: 'attacker',
     label: 'Attacker POV',
-    position: [7.2, 2.1, 2.6],
-    target: [-1, 1.6, -0.4],
+    position: [7.2, 2.75, 2.6],
+    target: [-1, 1.4, -0.4],
     fov: 60,
   },
   setter: {
     id: 'setter',
     label: 'Setter POV',
-    position: [2.8, 2.0, -1.2],
-    target: [-2, 1.2, 1.5],
-    fov: 65,
+    position: [3.9, 2.8, -1.8],
+    target: [-1.5, 1.0, 1.6],
+    fov: 62,
   },
   sideline: {
     id: 'sideline',

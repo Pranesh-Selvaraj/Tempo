@@ -10,12 +10,12 @@ export default {
           line: '#f8fafc',
         },
         panel: {
-          950: '#000000',
-          900: '#050505',
-          850: '#0a0a0a',
-          800: '#101010',
-          700: '#1c1c1c',
-          600: '#2e2e2e',
+          950: 'rgb(var(--panel-950) / <alpha-value>)',
+          900: 'rgb(var(--panel-900) / <alpha-value>)',
+          850: 'rgb(var(--panel-850) / <alpha-value>)',
+          800: 'rgb(var(--panel-800) / <alpha-value>)',
+          700: 'rgb(var(--panel-700) / <alpha-value>)',
+          600: 'rgb(var(--panel-600) / <alpha-value>)',
         },
         accent: {
           DEFAULT: '#38bdf8',

@@ -7,6 +7,8 @@ import {
 } from '@tempo/shared-types';
 import { useEditorStore } from '../../stores/editorStore';
 import { usePlayStore } from '../../stores/playStore';
+import { useThemeStore } from '../../stores/themeStore';
+import { THEME_INFO } from '../../lib/theme';
 import { FloorLabel } from './WorldLabel';
 
 const LINE_Y = 0.014;
@@ -76,10 +78,11 @@ function ZoneOverlay() {
 export function Court() {
   const courtType = usePlayStore((state) => state.play?.courtType ?? 'indoor');
   const showZones = useEditorStore((state) => state.showZones);
+  const sceneTheme = THEME_INFO[useThemeStore((state) => state.theme)].scene;
   const beach = courtType === 'beach';
 
-  const floorColor = beach ? '#6d5330' : '#0c0e12';
-  const surroundColor = beach ? '#141008' : '#000000';
+  const floorColor = beach ? sceneTheme.beachFloor : sceneTheme.indoorFloor;
+  const surroundColor = sceneTheme.surround;
 
   return (
     <group>

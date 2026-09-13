@@ -16,6 +16,7 @@ import { cn } from '../../lib/cn';
 import { trpc } from '../../lib/trpc';
 import type { Play } from '../../lib/trpc';
 import { useAuthStore } from '../../stores/authStore';
+import { ThemeSwitcher } from '../../components/ThemeSwitcher';
 import { Button, Field, Modal, NumberInput, Panel, Select, TextInput } from '../../components/ui';
 import { PlayCard } from './PlayCard';
 
@@ -216,6 +217,7 @@ export function PlayLibrary() {
           <span className="hidden text-xs text-slate-400 sm:block">
             {user?.name ?? user?.email}
           </span>
+          <ThemeSwitcher compact />
           <Button variant="ghost" onClick={clear} title="Sign out">
             <LogOut className="h-3.5 w-3.5" />
           </Button>

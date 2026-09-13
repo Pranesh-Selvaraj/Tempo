@@ -1,13 +1,50 @@
 import { useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, MousePointerClick, Users } from 'lucide-react';
-import { FORMATION_INFO, FORMATIONS, type Formation } from '@tempo/shared-types';
+import { ArrowLeft, Camera, MousePointerClick, Users } from 'lucide-react';
+import {
+  CAMERA_PRESETS,
+  CAMERA_PRESETS_MAP,
+  FORMATION_INFO,
+  FORMATIONS,
+  type CameraPresetId,
+  type Formation,
+} from '@tempo/shared-types';
+import { cn } from '../../lib/cn';
 import { Button, Select, TextInput } from '../../components/ui';
+import { useCameraStore } from '../../stores/cameraStore';
 import { useEditorStore } from '../../stores/editorStore';
 import { useQuickStore } from '../../stores/quickStore';
 import { Scene } from '../court/Scene';
 import { QuickHUD } from './QuickHUD';
 import { QuickRoster } from './QuickRoster';
+
+function QuickCameraControls() {
+  const presetId = useCameraStore((state) => state.presetId);
+  const setPreset = useCameraStore((state) => state.setPreset);
+  return (
+    <div className="pointer-events-auto absolute right-3 top-20 z-20 flex flex-col items-end gap-1">
+      <span className="panel flex items-center gap-1.5 px-2 py-1 text-[10px] uppercase tracking-wider text-slate-500">
+        <Camera className="h-3 w-3" />
+        Angles
+      </span>
+      {CAMERA_PRESETS.map((id: CameraPresetId) => (
+        <button
+          key={id}
+          type="button"
+          onClick={() => setPreset(id)}
+          className={cn(
+            'panel px-2.5 py-1 text-[11px] font-medium transition',
+            presetId === id
+              ? 'border-sky-400/50 text-sky-200'
+              : 'text-slate-400 hover:text-slate-100',
+          )}
+        >
+          {CAMERA_PRESETS_MAP[id].label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export function QuickPlayPage() {
   const name = useQuickStore((state) => state.name);
@@ -148,6 +185,7 @@ export function QuickPlayPage() {
       </header>
 
       <QuickRoster />
+      <QuickCameraControls />
       <QuickHUD />
     </div>
   );

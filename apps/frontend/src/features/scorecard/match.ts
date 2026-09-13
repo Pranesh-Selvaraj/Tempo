@@ -27,6 +27,42 @@ export interface MatchConfig {
   bestOf: 3 | 5;
 }
 
+export interface TeamPlayer {
+  id: string;
+  name: string;
+  number: string;
+  starter: boolean;
+}
+
+export interface StaffMember {
+  id: string;
+  name: string;
+  role: string;
+}
+
+export interface TeamRoster {
+  players: TeamPlayer[];
+  staff: StaffMember[];
+}
+
+export interface SubEvent {
+  setIndex: number;
+  side: TeamSide;
+  outId: string;
+  inId: string;
+  /** Number of points played when the substitution happened. */
+  eventIndex: number;
+}
+
+export const STAFF_ROLES = [
+  'Head Coach',
+  'Assistant Coach',
+  'Trainer',
+  'Team Manager',
+  'Statistician',
+  'Physio',
+] as const;
+
 export interface MatchState {
   config: MatchConfig;
   homeScore: number;
@@ -40,10 +76,30 @@ export interface MatchState {
   subs: { home: number; away: number };
   events: MatchEvent[];
   winner: TeamSide | null;
+  rosters: { home: TeamRoster; away: TeamRoster };
+  lineups: { home: string[]; away: string[] };
+  subEvents: SubEvent[];
 }
 
 export const SET_TIMEOUTS = 2;
 export const SET_SUBS = 6;
+
+export function emptyRoster(): TeamRoster {
+  return { players: [], staff: [] };
+}
+
+export function createPlayer(name: string, number: string, starter: boolean): TeamPlayer {
+  return { id: crypto.randomUUID(), name, number, starter };
+}
+
+export function createStaff(name: string, role: string): StaffMember {
+  return { id: crypto.randomUUID(), name, role };
+}
+
+/** The on-court six, in rotation order (index 0 starts at position 1). */
+export function buildLineup(roster: TeamRoster): string[] {
+  return roster.players.filter((player) => player.starter).slice(0, 6).map((player) => player.id);
+}
 
 export function createMatch(config: Partial<MatchConfig> = {}): MatchState {
   return {
@@ -63,6 +119,9 @@ export function createMatch(config: Partial<MatchConfig> = {}): MatchState {
     subs: { home: 0, away: 0 },
     events: [],
     winner: null,
+    rosters: { home: emptyRoster(), away: emptyRoster() },
+    lineups: { home: [], away: [] },
+    subEvents: [],
   };
 }
 
@@ -217,6 +276,134 @@ export function useTimeout(state: MatchState, side: TeamSide): MatchState {
 export function useSub(state: MatchState, side: TeamSide): MatchState {
   if (state.subs[side] >= SET_SUBS) return state;
   return { ...state, subs: { ...state.subs, [side]: state.subs[side] + 1 } };
+}
+
+/** Swap an on-court player with a bench player, keeping their rotation slot. */
+export function substitute(
+  state: MatchState,
+  side: TeamSide,
+  outId: string,
+  inId: string,
+): MatchState {
+  if (state.subs[side] >= SET_SUBS) return state;
+  const lineup = state.lineups[side];
+  const index = lineup.indexOf(outId);
+  if (index === -1 || lineup.includes(inId)) return state;
+  const next = [...lineup];
+  next[index] = inId;
+  return {
+    ...state,
+    lineups: { ...state.lineups, [side]: next },
+    subs: { ...state.subs, [side]: state.subs[side] + 1 },
+    subEvents: [
+      ...state.subEvents,
+      { setIndex: state.sets.length, side, outId, inId, eventIndex: state.events.length },
+    ],
+  };
+}
+
+/** Player id occupying a 1–6 rotation position, or null when no lineup is set. */
+export function playerAtPosition(
+  state: MatchState,
+  side: TeamSide,
+  rotation: number,
+  position: number,
+): string | null {
+  const lineup = state.lineups[side];
+  if (lineup.length < 6) return null;
+  const index = (((position - rotation) % 6) + 6) % 6;
+  return lineup[index] ?? null;
+}
+
+export interface PlayerStat {
+  playerId: string;
+  side: TeamSide;
+  name: string;
+  number: string;
+  servicePoints: number;
+  ralliesOnCourt: number;
+  subsIn: number;
+  maxServingRun: number;
+}
+
+export function computePlayerStats(state: MatchState): PlayerStat[] {
+  const stats = new Map<string, PlayerStat>();
+  for (const side of ['home', 'away'] as TeamSide[]) {
+    for (const player of state.rosters[side].players) {
+      stats.set(player.id, {
+        playerId: player.id,
+        side,
+        name: player.name || `#${player.number}`,
+        number: player.number,
+        servicePoints: 0,
+        ralliesOnCourt: 0,
+        subsIn: 0,
+        maxServingRun: 0,
+      });
+    }
+  }
+
+  const lineups: { home: string[]; away: string[] } = {
+    home: [...state.lineups.home],
+    away: [...state.lineups.away],
+  };
+  for (const sub of [...state.subEvents].reverse()) {
+    const lineup = lineups[sub.side];
+    const index = lineup.indexOf(sub.inId);
+    if (index !== -1) lineup[index] = sub.outId;
+  }
+
+  const substitutions = [...state.subEvents].sort((a, b) => a.eventIndex - b.eventIndex);
+  let subPointer = 0;
+  const idAt = (side: TeamSide, rotation: number, position: number): string | null => {
+    const lineup = lineups[side];
+    if (lineup.length < 6) return null;
+    const index = (((position - rotation) % 6) + 6) % 6;
+    return lineup[index] ?? null;
+  };
+
+  const currentRun = new Map<string, number>();
+  for (let eventIndex = 0; eventIndex < state.events.length; eventIndex += 1) {
+    const event = state.events[eventIndex]!;
+    while (subPointer < substitutions.length && substitutions[subPointer]!.eventIndex <= eventIndex) {
+      const sub = substitutions[subPointer]!;
+      const lineup = lineups[sub.side];
+      const index = lineup.indexOf(sub.outId);
+      if (index !== -1) lineup[index] = sub.inId;
+      subPointer += 1;
+    }
+
+    for (const side of ['home', 'away'] as TeamSide[]) {
+      const rotation = side === 'home' ? event.homeRotationBefore : event.awayRotationBefore;
+      for (let position = 1; position <= 6; position += 1) {
+        const id = idAt(side, rotation, position);
+        const stat = id ? stats.get(id) : undefined;
+        if (stat) stat.ralliesOnCourt += 1;
+      }
+    }
+
+    if (event.scoring === event.servingBefore) {
+      const rotation =
+        event.scoring === 'home' ? event.homeRotationBefore : event.awayRotationBefore;
+      const serverId = idAt(event.scoring, rotation, 1);
+      const stat = serverId ? stats.get(serverId) : undefined;
+      if (stat) {
+        stat.servicePoints += 1;
+        const run = (currentRun.get(stat.playerId) ?? 0) + 1;
+        currentRun.set(stat.playerId, run);
+        stat.maxServingRun = Math.max(stat.maxServingRun, run);
+      }
+    } else {
+      currentRun.clear();
+    }
+  }
+
+  for (const event of state.subEvents) {
+    const stat = stats.get(event.inId);
+    if (stat) stat.subsIn += 1;
+  }
+
+  return [...stats.values()];
 }
 
 export interface MatchAnalytics {

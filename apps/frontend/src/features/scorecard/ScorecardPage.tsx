@@ -1,12 +1,26 @@
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, RotateCcw, Timer, Trophy, Undo2, UserPlus } from 'lucide-react';
+import {
+  ArrowLeft,
+  Plus,
+  RotateCcw,
+  Timer,
+  Trash2,
+  Trophy,
+  Undo2,
+  UserPlus,
+  Users,
+} from 'lucide-react';
 import { cn } from '../../lib/cn';
-import { Button, Field, Panel, Segmented, TextInput } from '../../components/ui';
+import { ThemeSwitcher } from '../../components/ThemeSwitcher';
+import { Button, Field, Modal, Panel, Segmented, Select, TextInput } from '../../components/ui';
 import { useScorecardStore } from '../../stores/scorecardStore';
 import {
   SET_SUBS,
   SET_TIMEOUTS,
+  STAFF_ROLES,
   computeAnalytics,
+  computePlayerStats,
   currentSetNumber,
   isDecidingSet,
   matchPoint,
@@ -65,11 +79,10 @@ function RotationTracker({ rotation }: { rotation: number }) {
   );
 }
 
-function TeamPanel({ side }: { side: TeamSide }) {
+function TeamPanel({ side, onSub }: { side: TeamSide; onSub: (side: TeamSide) => void }) {
   const match = useScorecardStore((state) => state.match);
   const addPoint = useScorecardStore((state) => state.addPoint);
   const timeout = useScorecardStore((state) => state.timeout);
-  const sub = useScorecardStore((state) => state.sub);
   const name = side === 'home' ? match.config.homeName : match.config.awayName;
   const score = side === 'home' ? match.homeScore : match.awayScore;
   const style = TEAM_STYLES[side];
@@ -126,7 +139,7 @@ function TeamPanel({ side }: { side: TeamSide }) {
         </Button>
         <Button
           className="flex-1"
-          onClick={() => sub(side)}
+          onClick={() => onSub(side)}
           disabled={match.subs[side] >= SET_SUBS}
           title="Record a substitution"
         >
@@ -134,6 +147,14 @@ function TeamPanel({ side }: { side: TeamSide }) {
           Sub {match.subs[side]}/{SET_SUBS}
         </Button>
       </div>
+
+      {match.rosters[side].players.length > 0 && (
+        <p className="text-[10px] text-slate-500">
+          {match.lineups[side].length} on court ·{' '}
+          {Math.max(0, match.rosters[side].players.length - match.lineups[side].length)} bench ·{' '}
+          {match.rosters[side].staff.length} staff
+        </p>
+      )}
     </div>
   );
 }
@@ -215,8 +236,320 @@ function Analytics() {
             ))}
           </div>
         </div>
+
+        <PlayerStatsSection />
       </div>
     </Panel>
+  );
+}
+
+function PlayerStatsSection() {
+  const match = useScorecardStore((state) => state.match);
+  const stats = useMemo(() => computePlayerStats(match), [match]);
+  if (stats.length === 0) return null;
+
+  return (
+    <div>
+      <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+        Player stats
+      </p>
+      <div className="grid gap-3 lg:grid-cols-2">
+        {(['home', 'away'] as TeamSide[]).map((side) => {
+          const rows = stats
+            .filter((stat) => stat.side === side)
+            .sort(
+              (a, b) => b.servicePoints - a.servicePoints || b.ralliesOnCourt - a.ralliesOnCourt,
+            );
+          if (rows.length === 0) return null;
+          return (
+            <div key={side} className="rounded-lg border border-white/5 bg-white/[0.02] p-2">
+              <p
+                className={cn(
+                  'mb-1 text-[11px] font-semibold',
+                  side === 'home' ? 'text-cyan-300' : 'text-orange-300',
+                )}
+              >
+                {side === 'home' ? match.config.homeName : match.config.awayName}
+              </p>
+              <table className="w-full text-[11px]">
+                <thead>
+                  <tr className="text-slate-500">
+                    <th className="text-left font-medium">Player</th>
+                    <th className="text-right font-medium">Serve pts</th>
+                    <th className="text-right font-medium">Rallies</th>
+                    <th className="text-right font-medium">Subs</th>
+                    <th className="text-right font-medium">Best run</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((stat) => (
+                    <tr key={stat.playerId} className="border-t border-white/5">
+                      <td className="py-1 text-slate-300">
+                        {stat.number ? `#${stat.number} ` : ''}
+                        {stat.name}
+                      </td>
+                      <td className="text-right tabular-nums text-slate-100">{stat.servicePoints}</td>
+                      <td className="text-right tabular-nums text-slate-400">
+                        {stat.ralliesOnCourt}
+                      </td>
+                      <td className="text-right tabular-nums text-slate-400">{stat.subsIn}</td>
+                      <td className="text-right tabular-nums text-slate-400">
+                        {stat.maxServingRun}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function RosterSetupModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [side, setSide] = useState<TeamSide>('home');
+  const match = useScorecardStore((state) => state.match);
+  const addPlayer = useScorecardStore((state) => state.addPlayer);
+  const updatePlayer = useScorecardStore((state) => state.updatePlayer);
+  const removePlayer = useScorecardStore((state) => state.removePlayer);
+  const toggleStarter = useScorecardStore((state) => state.toggleStarter);
+  const quickFill = useScorecardStore((state) => state.quickFill);
+  const addStaff = useScorecardStore((state) => state.addStaff);
+  const updateStaff = useScorecardStore((state) => state.updateStaff);
+  const removeStaff = useScorecardStore((state) => state.removeStaff);
+
+  const roster = match.rosters[side];
+  const starters = roster.players.filter((player) => player.starter).length;
+
+  return (
+    <Modal open={open} onClose={onClose} title="Lineups & staff" size="lg">
+      <Segmented<TeamSide>
+        value={side}
+        onChange={setSide}
+        options={[
+          { value: 'home', label: match.config.homeName || 'Home' },
+          { value: 'away', label: match.config.awayName || 'Away' },
+        ]}
+      />
+
+      <div className="mt-4 space-y-5">
+        <section>
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <p className="text-xs font-semibold text-slate-200">Players ({roster.players.length})</p>
+            <span className="chip">{starters}/6 starters</span>
+            <div className="ml-auto flex gap-1">
+              <Button onClick={() => quickFill(side)} title="Create players #1–#9 with the first six as starters">
+                Quick fill 1–9
+              </Button>
+              <Button variant="primary" onClick={() => addPlayer(side)}>
+                <Plus className="h-3.5 w-3.5" />
+                Add player
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            {roster.players.map((player, index) => (
+              <div
+                key={player.id}
+                className="flex items-center gap-2 rounded-lg border border-white/5 bg-white/[0.03] p-2"
+              >
+                <span className="w-5 text-right text-[10px] tabular-nums text-slate-500">
+                  {index + 1}
+                </span>
+                <TextInput
+                  value={player.number}
+                  placeholder="#"
+                  className="w-14 text-center"
+                  onChange={(event) => updatePlayer(side, player.id, { number: event.target.value })}
+                />
+                <TextInput
+                  value={player.name}
+                  placeholder="Player name"
+                  className="flex-1"
+                  onChange={(event) => updatePlayer(side, player.id, { name: event.target.value })}
+                />
+                <button
+                  type="button"
+                  onClick={() => toggleStarter(side, player.id)}
+                  title="The first six starters are on court"
+                  className={cn(
+                    'chip',
+                    player.starter
+                      ? 'border-cyan-400/50 bg-cyan-500/15 text-cyan-100'
+                      : 'text-slate-500',
+                  )}
+                >
+                  {player.starter ? 'Starter' : 'Bench'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removePlayer(side, player.id)}
+                  className="text-slate-500 transition hover:text-red-300"
+                  aria-label="Remove player"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+            {roster.players.length === 0 && (
+              <p className="text-[11px] text-slate-500">
+                Optional — add names and numbers to track substitutions and per-player analytics, or
+                just use the scoreboard.
+              </p>
+            )}
+          </div>
+        </section>
+
+        <section>
+          <div className="mb-2 flex items-center gap-2">
+            <p className="text-xs font-semibold text-slate-200">Staff ({roster.staff.length})</p>
+            <Button className="ml-auto" onClick={() => addStaff(side)}>
+              <Plus className="h-3.5 w-3.5" />
+              Add staff
+            </Button>
+          </div>
+          <div className="space-y-1">
+            {roster.staff.map((member) => (
+              <div
+                key={member.id}
+                className="flex items-center gap-2 rounded-lg border border-white/5 bg-white/[0.03] p-2"
+              >
+                <TextInput
+                  value={member.name}
+                  placeholder="Name"
+                  className="flex-1"
+                  onChange={(event) => updateStaff(side, member.id, { name: event.target.value })}
+                />
+                <Select
+                  value={member.role}
+                  className="w-44"
+                  onChange={(event) => updateStaff(side, member.id, { role: event.target.value })}
+                >
+                  {STAFF_ROLES.map((role) => (
+                    <option key={role} value={role}>
+                      {role}
+                    </option>
+                  ))}
+                </Select>
+                <button
+                  type="button"
+                  onClick={() => removeStaff(side, member.id)}
+                  className="text-slate-500 transition hover:text-red-300"
+                  aria-label="Remove staff member"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+            {roster.staff.length === 0 && (
+              <p className="text-[11px] text-slate-500">
+                Add coaches and support staff so everyone at the gym knows the names.
+              </p>
+            )}
+          </div>
+        </section>
+      </div>
+    </Modal>
+  );
+}
+
+function SubstitutionModal({ side, onClose }: { side: TeamSide | null; onClose: () => void }) {
+  const match = useScorecardStore((state) => state.match);
+  const substitute = useScorecardStore((state) => state.substitute);
+  const [outId, setOutId] = useState<string | null>(null);
+  const [inId, setInId] = useState<string | null>(null);
+
+  const close = () => {
+    setOutId(null);
+    setInId(null);
+    onClose();
+  };
+
+  if (!side) return null;
+
+  const roster = match.rosters[side];
+  const lineup = match.lineups[side];
+  const rotation = side === 'home' ? match.homeRotation : match.awayRotation;
+  const onCourt = lineup.map((id, index) => ({
+    id,
+    player: roster.players.find((player) => player.id === id),
+    position: ((index + rotation - 1) % 6) + 1,
+  }));
+  const bench = roster.players.filter((player) => !lineup.includes(player.id));
+  const subsLeft = SET_SUBS - match.subs[side];
+  const canSubstitute = Boolean(outId && inId) && subsLeft > 0;
+
+  const rowClass = (selected: boolean) =>
+    cn(
+      'mb-1 flex w-full items-center gap-2 rounded-lg border px-2 py-1.5 text-left transition',
+      selected
+        ? 'border-sky-400/50 bg-sky-500/15'
+        : 'border-white/5 bg-white/[0.03] hover:border-white/15',
+    );
+
+  return (
+    <Modal
+      open={side !== null}
+      onClose={close}
+      title={`Substitution — ${side === 'home' ? match.config.homeName : match.config.awayName}`}
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <p className="field-label mb-1">On court</p>
+          {onCourt.map(({ id, player, position }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setOutId(id)}
+              className={rowClass(outId === id)}
+            >
+              <span className="chip w-8 justify-center">P{position}</span>
+              <span className="truncate text-xs text-slate-200">
+                {player?.number ? `#${player.number} ` : ''}
+                {player?.name || 'Unnamed'}
+              </span>
+            </button>
+          ))}
+        </div>
+        <div>
+          <p className="field-label mb-1">Bench</p>
+          {bench.map((player) => (
+            <button
+              key={player.id}
+              type="button"
+              onClick={() => setInId(player.id)}
+              className={rowClass(inId === player.id)}
+            >
+              <span className="truncate text-xs text-slate-200">
+                {player.number ? `#${player.number} ` : ''}
+                {player.name || 'Unnamed'}
+              </span>
+            </button>
+          ))}
+          {bench.length === 0 && (
+            <p className="text-[11px] text-slate-500">No bench players available.</p>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-4 flex items-center justify-end gap-2">
+        <span className="mr-auto text-[10px] text-slate-500">{subsLeft} substitutions left this set</span>
+        <Button onClick={close}>Cancel</Button>
+        <Button
+          variant="primary"
+          disabled={!canSubstitute}
+          onClick={() => {
+            if (outId && inId) substitute(side, outId, inId);
+            close();
+          }}
+        >
+          Confirm substitution
+        </Button>
+      </div>
+    </Modal>
   );
 }
 
@@ -227,6 +560,14 @@ export function ScorecardPage() {
   const setTeamName = useScorecardStore((state) => state.setTeamName);
   const setBestOf = useScorecardStore((state) => state.setBestOf);
   const reset = useScorecardStore((state) => state.reset);
+  const sub = useScorecardStore((state) => state.sub);
+  const [rosterOpen, setRosterOpen] = useState(false);
+  const [subSide, setSubSide] = useState<TeamSide | null>(null);
+
+  const handleSub = (side: TeamSide) => {
+    if (match.rosters[side].players.length >= 6) setSubSide(side);
+    else sub(side);
+  };
 
   const setNumber = currentSetNumber(match);
   const target = setTarget(match);
@@ -247,6 +588,10 @@ export function ScorecardPage() {
           </p>
         </div>
         <div className="ml-auto flex items-center gap-2">
+          <Button onClick={() => setRosterOpen(true)}>
+            <Users className="h-3.5 w-3.5" />
+            Lineups &amp; staff
+          </Button>
           <Button onClick={undo} disabled={match.events.length === 0}>
             <Undo2 className="h-3.5 w-3.5" />
             Undo point
@@ -258,6 +603,7 @@ export function ScorecardPage() {
             <RotateCcw className="h-3.5 w-3.5" />
             Reset match
           </Button>
+          <ThemeSwitcher compact />
         </div>
       </header>
 
@@ -290,7 +636,7 @@ export function ScorecardPage() {
         </Panel>
 
         <div className="grid gap-3 lg:grid-cols-[1fr_auto_1fr]">
-          <TeamPanel side="home" />
+          <TeamPanel side="home" onSub={handleSub} />
 
           <div className="panel flex min-w-[220px] flex-col items-center justify-center gap-3 p-4">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
@@ -314,11 +660,14 @@ export function ScorecardPage() {
             <RotationTracker rotation={match.homeRotation} />
           </div>
 
-          <TeamPanel side="away" />
+          <TeamPanel side="away" onSub={handleSub} />
         </div>
 
         <Analytics />
       </div>
+
+      <RosterSetupModal open={rosterOpen} onClose={() => setRosterOpen(false)} />
+      <SubstitutionModal side={subSide} onClose={() => setSubSide(null)} />
     </div>
   );
 }
