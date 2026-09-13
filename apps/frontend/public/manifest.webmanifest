@@ -1,14 +1,17 @@
 {
-  "name": "Tempo — 3D Volleyball Play Designer",
+  "name": "Tempo \u2014 3D Volleyball Play Designer",
   "short_name": "Tempo",
   "description": "Author 3D volleyball plays, choreograph cameras, record video, teach on any device.",
   "start_url": "/",
   "scope": "/",
   "display": "fullscreen",
-  "display_override": ["fullscreen", "standalone"],
+  "display_override": [
+    "fullscreen",
+    "standalone"
+  ],
   "orientation": "any",
-  "background_color": "#0b1120",
-  "theme_color": "#0b1120",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "icons": [
     {
       "src": "/icons/icon-192.png",
@@ -45,6 +48,11 @@
       "name": "Rules",
       "url": "/rules",
       "description": "Volleyball rules reference"
+    },
+    {
+      "name": "Match scorecard",
+      "url": "/scorecard",
+      "description": "Track a live match score and rotations"
     }
   ]
 }

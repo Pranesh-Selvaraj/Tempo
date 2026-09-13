@@ -61,7 +61,7 @@ export function Ball() {
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[position.x, 0.02, position.z]} renderOrder={2}>
         <circleGeometry args={[0.24, 24]} />
         <meshBasicMaterial
-          color="#020617"
+          color="#000000"
           transparent
           opacity={clamp(0.42 - position.y * 0.06, 0.05, 0.42)}
           depthWrite={false}

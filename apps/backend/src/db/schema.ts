@@ -67,6 +67,8 @@ export const plays = pgTable('plays', {
   name: text('name').notNull(),
   category: playCategoryEnum('category').notNull().default('serve_receive'),
   rotation: integer('rotation').notNull().default(1),
+  formation: text('formation').notNull().default('5-1'),
+  libero: boolean('libero').notNull().default(true),
   courtType: courtTypeEnum('court_type').notNull().default('indoor'),
   netHeight: numeric('net_height', { precision: 4, scale: 2, mode: 'number' }).notNull().default(2.43),
   description: text('description'),

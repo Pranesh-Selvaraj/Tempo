@@ -60,7 +60,7 @@ export function PlayCard({ play }: { play: Play }) {
         </div>
         <span
           className="mt-0.5 h-6 w-6 shrink-0 rounded-lg"
-          style={{ background: `linear-gradient(135deg, ${phaseColor(play.name)}, #0f172a)` }}
+          style={{ background: `linear-gradient(135deg, ${phaseColor(play.name)}, #000000)` }}
         />
       </div>
 

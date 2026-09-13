@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { X } from 'lucide-react';
+import { FORMATION_INFO } from '@tempo/shared-types';
 import { cn } from '../../lib/cn';
 import { usePlayStore } from '../../stores/playStore';
 import { useQuickStore } from '../../stores/quickStore';
@@ -16,6 +17,8 @@ export function QuickRoster() {
   const open = useQuickStore((state) => state.rosterOpen);
   const toggle = useQuickStore((state) => state.toggleRoster);
   const rotation = useQuickStore((state) => state.rotation);
+  const formation = useQuickStore((state) => state.formation);
+  const libero = useQuickStore((state) => state.libero);
   const ballTargets = useQuickStore((state) => state.ballTargets);
   const spikeTarget = useQuickStore((state) => state.spikeTarget);
   const receiveFormation = useQuickStore((state) => state.receiveFormation);
@@ -42,7 +45,9 @@ export function QuickRoster() {
   return (
     <aside className="panel pointer-events-auto absolute left-3 top-16 z-20 w-72 p-3">
       <header className="mb-2 flex items-center gap-2">
-        <h2 className="text-xs font-semibold text-slate-200">Roster · Rotation {rotation}</h2>
+        <h2 className="text-xs font-semibold text-slate-200">
+          {formation} · Rotation {rotation}
+        </h2>
         <button
           type="button"
           onClick={toggle}
@@ -57,6 +62,10 @@ export function QuickRoster() {
         <span className="chip">{home.length} on court</span>
         <span className="chip">
           Front {frontRow} · Back {home.length - frontRow}
+        </span>
+        <span className="chip">{FORMATION_INFO[formation].short}</span>
+        <span className={cn('chip', libero && 'border-violet-400/40 text-violet-200')}>
+          {libero ? 'Libero on' : 'No libero'}
         </span>
         {opponents.length > 0 && <span className="chip">{opponents.length} blockers</span>}
       </div>

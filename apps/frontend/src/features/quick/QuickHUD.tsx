@@ -266,6 +266,8 @@ function PlayStep() {
         name: quick.name.trim() || 'Quick play',
         category: 'serve_receive',
         rotation: quick.rotation,
+        formation: quick.formation,
+        libero: quick.libero,
         courtType: 'indoor',
         netHeight: NET_HEIGHT_MEN,
       });

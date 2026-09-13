@@ -78,7 +78,7 @@ export function Net() {
         <group key={side}>
           <mesh position={[0, postHeight / 2 - 0.1, side * (NET_HALF_WIDTH + 0.15)]} castShadow>
             <cylinderGeometry args={[0.05, 0.05, postHeight, 12]} />
-            <meshStandardMaterial color="#1e293b" metalness={0.4} roughness={0.4} />
+            <meshStandardMaterial color="#262626" metalness={0.4} roughness={0.4} />
           </mesh>
           <mesh
             position={[0, netHeight, side * (NET_HALF_WIDTH + 0.075)]}

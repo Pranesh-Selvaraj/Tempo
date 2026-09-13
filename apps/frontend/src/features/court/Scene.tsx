@@ -23,7 +23,7 @@ function Lighting() {
   return (
     <>
       <ambientLight intensity={0.5} />
-      <hemisphereLight args={['#93c5fd', '#0f172a', 0.4]} />
+      <hemisphereLight args={['#93c5fd', '#000000', 0.4]} />
       <directionalLight
         position={[12, 18, 8]}
         intensity={1.6}
@@ -81,8 +81,8 @@ export function Scene({ editing = true, quick = false }: { editing?: boolean; qu
         bridge.root = state;
       }}
     >
-      <color attach="background" args={['#0b1120']} />
-      <fog attach="fog" args={['#0b1120', 30, 90]} />
+      <color attach="background" args={['#000000']} />
+      <fog attach="fog" args={['#000000', 30, 90]} />
 
       <Lighting />
       <Court />

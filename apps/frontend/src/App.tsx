@@ -6,6 +6,7 @@ import { EditorPage } from './features/editor/EditorPage';
 import { PlayLibrary } from './features/library/PlayLibrary';
 import { PresentationMode } from './features/presentation/PresentationMode';
 import { QuickPlayPage } from './features/quick/QuickPlayPage';
+import { ScorecardPage } from './features/scorecard/ScorecardPage';
 import { ViewerPage } from './features/presentation/ViewerPage';
 import { RulesBrowser } from './features/rules/RulesBrowser';
 
@@ -53,6 +54,7 @@ export function App() {
         <Route path="/view/:playId" element={<ViewerPage />} />
         <Route path="/present/:playId" element={<PresentationMode />} />
         <Route path="/rules" element={<RulesBrowser />} />
+        <Route path="/scorecard" element={<ScorecardPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>

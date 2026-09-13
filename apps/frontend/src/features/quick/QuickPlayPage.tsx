@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, MousePointerClick, Users } from 'lucide-react';
+import { FORMATION_INFO, FORMATIONS, type Formation } from '@tempo/shared-types';
 import { Button, Select, TextInput } from '../../components/ui';
 import { useEditorStore } from '../../stores/editorStore';
 import { useQuickStore } from '../../stores/quickStore';
@@ -11,10 +12,14 @@ import { QuickRoster } from './QuickRoster';
 export function QuickPlayPage() {
   const name = useQuickStore((state) => state.name);
   const rotation = useQuickStore((state) => state.rotation);
+  const formation = useQuickStore((state) => state.formation);
+  const libero = useQuickStore((state) => state.libero);
   const step = useQuickStore((state) => state.step);
   const rosterOpen = useQuickStore((state) => state.rosterOpen);
   const setName = useQuickStore((state) => state.setName);
   const setRotation = useQuickStore((state) => state.setRotation);
+  const setFormation = useQuickStore((state) => state.setFormation);
+  const setLibero = useQuickStore((state) => state.setLibero);
   const toggleRoster = useQuickStore((state) => state.toggleRoster);
 
   useEffect(() => {
@@ -118,6 +123,27 @@ export function QuickPlayPage() {
               </option>
             ))}
           </Select>
+          <Select
+            value={formation}
+            disabled={step === 'play'}
+            title={FORMATION_INFO[formation].description}
+            onChange={(event) => setFormation(event.target.value as Formation)}
+            className="w-24"
+          >
+            {FORMATIONS.map((value) => (
+              <option key={value} value={value} title={FORMATION_INFO[value].description}>
+                {value}
+              </option>
+            ))}
+          </Select>
+          <Button
+            variant={libero ? 'primary' : 'default'}
+            disabled={step === 'play'}
+            onClick={() => setLibero(!libero)}
+            title="Toggle the libero in the lineup"
+          >
+            Libero
+          </Button>
         </div>
       </header>
 

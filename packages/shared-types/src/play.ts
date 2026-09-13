@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { FormationSchema } from './formation';
 
 export const PLAY_CATEGORIES = [
   'serve_receive',
@@ -30,6 +31,8 @@ export const PlaySchema = z.object({
   name: z.string().min(1).max(120),
   category: PlayCategorySchema,
   rotation: z.number().int().min(1).max(6),
+  formation: FormationSchema,
+  libero: z.boolean(),
   courtType: CourtTypeSchema,
   netHeight: z.number().min(1).max(3),
   description: z.string().nullable(),
@@ -45,6 +48,8 @@ export const PlayCreateInputSchema = z.object({
   name: z.string().min(1).max(120),
   category: PlayCategorySchema.default('serve_receive'),
   rotation: z.number().int().min(1).max(6).default(1),
+  formation: FormationSchema.default('5-1'),
+  libero: z.boolean().default(true),
   courtType: CourtTypeSchema.default('indoor'),
   netHeight: z.number().min(1).max(3).default(2.43),
   description: z.string().max(2000).nullish(),

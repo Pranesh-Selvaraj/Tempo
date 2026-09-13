@@ -78,8 +78,8 @@ export function Court() {
   const showZones = useEditorStore((state) => state.showZones);
   const beach = courtType === 'beach';
 
-  const floorColor = beach ? '#e2bd85' : '#c98b4b';
-  const surroundColor = beach ? '#c9a066' : '#0f2f4f';
+  const floorColor = beach ? '#6d5330' : '#0c0e12';
+  const surroundColor = beach ? '#141008' : '#000000';
 
   return (
     <group>

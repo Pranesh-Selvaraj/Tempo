@@ -12,6 +12,8 @@ import {
 import {
   COURT_TYPES,
   DEFAULT_TRAJECTORY_DURATION_MS,
+  FORMATION_INFO,
+  FORMATIONS,
   PLAY_CATEGORY_LABELS,
   PLAY_CATEGORIES,
   POSE_LABELS,
@@ -21,7 +23,9 @@ import {
   TRAJECTORY_COLORS,
   TRAJECTORY_LABELS,
   TRAJECTORY_TYPES,
+  asFormation,
   type CourtType,
+  type Formation,
   type PlayCategory,
   type Pose,
 } from '@tempo/shared-types';
@@ -315,7 +319,21 @@ function PlayDetails() {
   const updatePlay = trpc.play.update.useMutation();
   if (!play) return null;
 
-  const patch = (values: Partial<typeof play>) => {
+  const patch = (
+    values: Partial<
+      Pick<
+        typeof play,
+        | 'name'
+        | 'category'
+        | 'rotation'
+        | 'courtType'
+        | 'netHeight'
+        | 'description'
+        | 'coachingNotes'
+        | 'isPublic'
+      >
+    > & { formation?: Formation; libero?: boolean },
+  ) => {
     usePlayStore.getState().setPlay({ ...play, ...values });
     updatePlay.mutate(
       { id: play.id, ...values },
@@ -362,6 +380,32 @@ function PlayDetails() {
         </div>
 
         <div className="grid grid-cols-2 gap-2">
+          <Field label="Formation">
+            <Select
+              value={play.formation}
+              title={FORMATION_INFO[asFormation(play.formation)].description}
+              onChange={(event) => patch({ formation: event.target.value as Formation })}
+            >
+              {FORMATIONS.map((value) => (
+                <option key={value} value={value} title={FORMATION_INFO[value].description}>
+                  {value} — {FORMATION_INFO[value].short}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <div className="flex items-end">
+            <Button
+              className="w-full"
+              variant={play.libero ? 'primary' : 'default'}
+              onClick={() => patch({ libero: !play.libero })}
+              title="Toggle the libero in the base lineup"
+            >
+              {play.libero ? 'Libero on' : 'No libero'}
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
           <Field label="Court">
             <Select
               value={play.courtType}
@@ -377,8 +421,12 @@ function PlayDetails() {
           <div className="flex items-end">
             <Button
               className="w-full"
-              onClick={() => usePlayStore.getState().setPlayers(basePlayersFor(play.rotation))}
-              title="Reset all players to base positions for this rotation"
+              onClick={() =>
+                usePlayStore
+                  .getState()
+                  .setPlayers(basePlayersFor(play.rotation, play.formation, play.libero))
+              }
+              title="Reset all players to base positions for this formation and rotation"
             >
               Base positions
             </Button>

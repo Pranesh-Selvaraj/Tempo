@@ -251,7 +251,7 @@ export function MannequinPlayer({ state }: { state: PlayerState }) {
   });
 
   const jersey = state.playerId.startsWith('opp') ? '#f97316' : ROLE_COLORS[state.role];
-  const shorts = '#1e293b';
+  const shorts = '#111111';
   const skin = '#f0c8a0';
 
   return (

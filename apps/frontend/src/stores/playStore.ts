@@ -1,8 +1,10 @@
 import { create } from 'zustand';
 import {
+  asFormation,
   computePlayDuration,
-  getBasePositions,
+  getFormationPositions,
   interpolatePlayerStates,
+  type Formation,
   type PlayerState,
 } from '@tempo/shared-types';
 import type {
@@ -15,8 +17,12 @@ import type {
   Trajectory,
 } from '../lib/trpc';
 
-export function basePlayersFor(rotation: number): PlayerState[] {
-  return getBasePositions(rotation).map((player) => ({
+export function basePlayersFor(
+  rotation: number,
+  formation: Formation | string = '5-1',
+  libero = true,
+): PlayerState[] {
+  return getFormationPositions(asFormation(formation), rotation, libero).map((player) => ({
     playerId: player.playerId,
     role: player.role,
     position: player.position,
@@ -82,7 +88,7 @@ export const usePlayStore = create<PlayState>((set) => ({
   ...emptyState,
 
   loadDetail: (detail) => {
-    const base = basePlayersFor(detail.play.rotation);
+    const base = basePlayersFor(detail.play.rotation, detail.play.formation, detail.play.libero);
     const players =
       detail.keyframes.length > 0
         ? interpolatePlayerStates(detail.keyframes, 0, base)

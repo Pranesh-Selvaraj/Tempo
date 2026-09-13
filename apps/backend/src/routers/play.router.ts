@@ -20,6 +20,8 @@ export const playRouter = router({
         name: input.name,
         category: input.category,
         rotation: input.rotation,
+        formation: input.formation,
+        libero: input.libero,
         courtType: input.courtType,
         netHeight: input.netHeight,
         description: input.description ?? null,

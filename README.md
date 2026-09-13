@@ -9,6 +9,10 @@ Built by **Pranesh Selvaraj** — volleyball player and developer ([@Pranesh-Sel
 ## Features
 
 - **Interactive play mode** — skip setup and start on the court: drag the receive formation, tap three ball targets, pick the block count, mark the spike, watch it animate, then save or record
+- **OLED-first theme** — a true-black interface tuned for OLED screens, with bright colour-coded plays, players and ball paths
+- **Formation systems** — 5-1, 6-2, 4-2 and 6-6 base positions per play, with or without a libero
+- **Match scorecard & analytics** — live rally scoring, sets, rotation tracking, timeouts, substitutions, sideout %, points by rotation and longest runs (saved on the device)
+- **Library analytics** — play counts, categories and sharing stats at a glance
 - **Roster & positions** — live panel showing who is who, their role, current zone (4–3–2 / 5–6–1) and task (receiver / setter / spiker / blocker)
 - **Undo / redo everywhere in quick mode** — player moves, ball targets, blocks and step changes (`Ctrl+Z` / `Ctrl+Shift+Z`), plus draggable ball markers and arrow-key nudging
 - **Accurate 3D court** — 18 × 9 m floor, 2.43 m net, 3 m attack lines, antennas, rotation zones 1–6
@@ -85,7 +89,11 @@ Open **Library → Interactive play** to skip play creation entirely. You start 
 3. Drag players to their spike-time spots (dashed lines show each run), choose 0–3 blocks and tap where the spike lands.
 4. Press **Watch the play** — serve, pass, set and spike animate with the ball. Then save it as a normal play or jump straight to recording a video.
 
-Undo/redo covers every step (`Ctrl+Z` / `Ctrl+Shift+Z`), the roster panel explains who is who and which zone they play, and ball markers can be dragged or nudged with the arrow keys.
+Undo/redo covers every step (`Ctrl+Z` / `Ctrl+Shift+Z`), the roster panel explains who is who and which zone they play, and ball markers can be dragged or nudged with the arrow keys. Switch formation (5-1 / 6-2 / 4-2 / 6-6) and toggle the libero right from the header.
+
+### Match scorecard
+
+Open **Scorecard** from the library header (or `/scorecard`) to run a live match on any device: rally scoring, sets and the deciding set, rotation tracking, timeouts, substitutions and analytics — sideout percentage, points by rotation and longest scoring runs. The match is saved in the browser, so a refresh at the gym does not lose the score.
 
 ### Player models (Sprint 5)
 
@@ -158,6 +166,7 @@ packages/
 | 9 · Presentation mode (PWA) | ✅ manifest, service worker, full-screen route, chapter bar |
 | 10 · Studio export | ✅ frame-by-frame WebCodecs render, background queue, upload to `/uploads` or R2 |
 | 11 · Interactive play | ✅ start-on-court quick mode, tap-to-target ball paths, block stepper, undo/redo, roster panel, save → advanced editor |
+| 12 · Volleyball suite | ✅ OLED black theme, formation systems (5-1 / 6-2 / 4-2 / 6-6) with libero toggle, live scorecard + analytics, library stats |
 
 ## Author
 

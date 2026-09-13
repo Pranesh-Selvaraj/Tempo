@@ -1,19 +1,55 @@
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BookOpen, LogOut, MousePointerClick, Plus, Volleyball } from 'lucide-react';
+import { BookOpen, ClipboardList, LogOut, MousePointerClick, Plus, Volleyball } from 'lucide-react';
 import {
   COURT_TYPES,
+  FORMATION_INFO,
+  FORMATIONS,
   NET_HEIGHT_MEN,
   NET_HEIGHT_WOMEN,
   PLAY_CATEGORY_LABELS,
   PLAY_CATEGORIES,
+  type Formation,
   type PlayCategory,
 } from '@tempo/shared-types';
 import { cn } from '../../lib/cn';
 import { trpc } from '../../lib/trpc';
+import type { Play } from '../../lib/trpc';
 import { useAuthStore } from '../../stores/authStore';
 import { Button, Field, Modal, NumberInput, Panel, Select, TextInput } from '../../components/ui';
 import { PlayCard } from './PlayCard';
+
+function LibraryStats({ plays }: { plays: Play[] }) {
+  const stats = useMemo(() => {
+    const byCategory = new Map<string, number>();
+    for (const play of plays) {
+      byCategory.set(play.category, (byCategory.get(play.category) ?? 0) + 1);
+    }
+    const top = [...byCategory.entries()].sort((a, b) => b[1] - a[1])[0];
+    return {
+      total: plays.length,
+      categories: byCategory.size,
+      top: top ? PLAY_CATEGORY_LABELS[top[0] as PlayCategory] : '—',
+      shared: plays.filter((play) => play.isPublic).length,
+    };
+  }, [plays]);
+
+  return (
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      {[
+        { label: 'Plays', value: String(stats.total) },
+        { label: 'Categories', value: String(stats.categories) },
+        { label: 'Top category', value: stats.top },
+        { label: 'Shared', value: String(stats.shared) },
+      ].map((stat) => (
+        <div key={stat.label} className="panel px-3 py-2">
+          <p className="text-[10px] uppercase tracking-wider text-slate-500">{stat.label}</p>
+          <p className="truncate text-lg font-bold tabular-nums text-sky-300">{stat.value}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function NewPlayDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const navigate = useNavigate();
@@ -22,6 +58,8 @@ function NewPlayDialog({ open, onClose }: { open: boolean; onClose: () => void }
   const [name, setName] = useState('');
   const [category, setCategory] = useState<PlayCategory>('serve_receive');
   const [rotation, setRotation] = useState(1);
+  const [formation, setFormation] = useState<Formation>('5-1');
+  const [libero, setLibero] = useState(true);
   const [courtType, setCourtType] = useState<'indoor' | 'beach'>('indoor');
   const [netHeight, setNetHeight] = useState(NET_HEIGHT_MEN);
 
@@ -29,7 +67,7 @@ function NewPlayDialog({ open, onClose }: { open: boolean; onClose: () => void }
     event.preventDefault();
     if (!name.trim()) return;
     create.mutate(
-      { name: name.trim(), category, rotation, courtType, netHeight },
+      { name: name.trim(), category, rotation, formation, libero, courtType, netHeight },
       {
         onSuccess: (play) => {
           void utils.play.list.invalidate();
@@ -100,6 +138,29 @@ function NewPlayDialog({ open, onClose }: { open: boolean; onClose: () => void }
             />
           </Field>
         </div>
+        <div className="grid grid-cols-2 gap-2">
+          <Field label="Formation" hint={FORMATION_INFO[formation].short}>
+            <Select
+              value={formation}
+              onChange={(event) => setFormation(event.target.value as Formation)}
+            >
+              {FORMATIONS.map((value) => (
+                <option key={value} value={value} title={FORMATION_INFO[value].description}>
+                  {value}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <div className="flex items-end">
+            <Button
+              className={cn('w-full', libero && 'btn-primary')}
+              onClick={() => setLibero(!libero)}
+              title="Toggle the libero in the base lineup"
+            >
+              {libero ? 'Libero on' : 'No libero'}
+            </Button>
+          </div>
+        </div>
         <div className="flex flex-wrap gap-1.5 text-[10px] text-slate-500">
           {[NET_HEIGHT_MEN, NET_HEIGHT_WOMEN].map((height) => (
             <button
@@ -144,6 +205,10 @@ export function PlayLibrary() {
           </p>
         </div>
         <div className="ml-auto flex items-center gap-2">
+          <Link to="/scorecard" className="btn">
+            <ClipboardList className="h-3.5 w-3.5" />
+            Scorecard
+          </Link>
           <Link to="/rules" className="btn">
             <BookOpen className="h-3.5 w-3.5" />
             Rules
@@ -191,6 +256,10 @@ export function PlayLibrary() {
             </button>
           ))}
         </div>
+
+        {!list.isLoading && !list.error && (list.data ?? []).length > 0 && (
+          <LibraryStats plays={list.data ?? []} />
+        )}
 
         {list.isLoading ? (
           <p className="py-10 text-center text-sm text-slate-500">Loading plays…</p>

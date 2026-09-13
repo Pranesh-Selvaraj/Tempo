@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { NET_HEIGHT_MEN, clamp, type PlayerState, type Vec3 } from '@tempo/shared-types';
+import { NET_HEIGHT_MEN, clamp, type Formation, type PlayerState, type Vec3 } from '@tempo/shared-types';
 import type { Keyframe, Trajectory } from '../lib/trpc';
 import { basePlayersFor, usePlayStore } from './playStore';
 import { useEditorStore } from './editorStore';
@@ -17,6 +17,9 @@ import {
 
 interface QuickSnapshot {
   step: QuickStep;
+  rotation: number;
+  formation: Formation;
+  libero: boolean;
   ballTargets: Vec3[];
   spikeTarget: Vec3 | null;
   blockers: number;
@@ -34,6 +37,8 @@ interface QuickState {
   active: boolean;
   step: QuickStep;
   rotation: number;
+  formation: Formation;
+  libero: boolean;
   name: string;
   setHeight: number;
   receiveFormation: PlayerState[] | null;
@@ -56,6 +61,8 @@ interface QuickState {
   setStep: (step: QuickStep) => void;
   setName: (name: string) => void;
   setRotation: (rotation: number) => void;
+  setFormation: (formation: Formation) => void;
+  setLibero: (libero: boolean) => void;
   setSetHeight: (height: number) => void;
   toggleRoster: () => void;
   beginHistory: (tag?: string) => void;
@@ -80,6 +87,8 @@ const initialState = {
   active: false,
   step: 'receive' as QuickStep,
   rotation: 1,
+  formation: '5-1' as Formation,
+  libero: true,
   name: 'Quick play',
   setHeight: QUICK_SET_HEIGHT_DEFAULT,
   receiveFormation: null as PlayerState[] | null,
@@ -106,6 +115,9 @@ function capture(state: QuickState): QuickSnapshot {
   const playStore = usePlayStore.getState();
   return {
     step: state.step,
+    rotation: state.rotation,
+    formation: state.formation,
+    libero: state.libero,
     ballTargets: state.ballTargets.map((point) => ({ ...point })),
     spikeTarget: state.spikeTarget ? { ...state.spikeTarget } : null,
     blockers: state.blockers,
@@ -147,6 +159,9 @@ function apply(snapshot: QuickSnapshot): void {
   }
   useQuickStore.setState({
     step: snapshot.step,
+    rotation: snapshot.rotation,
+    formation: snapshot.formation,
+    libero: snapshot.libero,
     ballTargets: snapshot.ballTargets.map((point) => ({ ...point })),
     spikeTarget: snapshot.spikeTarget ? { ...snapshot.spikeTarget } : null,
     blockers: snapshot.blockers,
@@ -168,6 +183,8 @@ export const useQuickStore = create<QuickState>((set, get) => ({
       name: 'Quick play',
       category: 'serve_receive',
       rotation,
+      formation: '5-1',
+      libero: true,
       courtType: 'indoor',
       netHeight: NET_HEIGHT_MEN,
       description: null,
@@ -177,7 +194,7 @@ export const useQuickStore = create<QuickState>((set, get) => ({
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    usePlayStore.getState().setPlayers(basePlayersFor(rotation));
+    usePlayStore.getState().setPlayers(basePlayersFor(rotation, '5-1', true));
     usePlayStore.getState().setDuration(QUICK_TIMING.totalMs);
     useTimelineStore.getState().reset();
     useEditorStore.getState().setTool('select');
@@ -253,9 +270,38 @@ export const useQuickStore = create<QuickState>((set, get) => ({
 
   setRotation: (rotation) => {
     get().beginHistory();
-    usePlayStore.getState().setPlayers(basePlayersFor(rotation));
+    const { formation, libero } = get();
+    usePlayStore.getState().setPlayers(basePlayersFor(rotation, formation, libero));
     set({
       rotation,
+      receiveFormation: null,
+      attackFormation: null,
+      selectedTarget: null,
+    });
+  },
+
+  setFormation: (formation) => {
+    get().beginHistory();
+    const { rotation, libero } = get();
+    const play = usePlayStore.getState().play;
+    usePlayStore.getState().setPlayers(basePlayersFor(rotation, formation, libero));
+    if (play) usePlayStore.getState().setPlay({ ...play, formation });
+    set({
+      formation,
+      receiveFormation: null,
+      attackFormation: null,
+      selectedTarget: null,
+    });
+  },
+
+  setLibero: (libero) => {
+    get().beginHistory();
+    const { rotation, formation } = get();
+    const play = usePlayStore.getState().play;
+    usePlayStore.getState().setPlayers(basePlayersFor(rotation, formation, libero));
+    if (play) usePlayStore.getState().setPlay({ ...play, libero });
+    set({
+      libero,
       receiveFormation: null,
       attackFormation: null,
       selectedTarget: null,
