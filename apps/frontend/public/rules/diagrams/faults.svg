@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 400" role="img" aria-labelledby="title desc">
+  <title id="title">Common faults: center line and net touch</title>
+  <desc id="desc">Left: a foot completely crossing the center line is a fault. Right: touching the net between the antennas is a fault.</desc>
+  <style>
+    .panel { fill: rgba(148,163,184,0.05); stroke: #334155; stroke-width: 1.5; }
+    .floor { stroke: #cbd5e1; stroke-width: 3; }
+    .netline { stroke: #f8fafc; stroke-width: 3; }
+    .band { stroke: #e2e8f0; stroke-width: 6; }
+    .mesh { stroke: #475569; stroke-width: 1; }
+    .foot { fill: #f59e0b; opacity: 0.85; }
+    .hand { fill: #f59e0b; opacity: 0.85; }
+    .title { fill: #e2e8f0; font: 600 14px ui-sans-serif, system-ui, sans-serif; text-anchor: middle; }
+    .caption { fill: #94a3b8; font: 500 11.5px ui-sans-serif, system-ui, sans-serif; text-anchor: middle; }
+    .x { stroke: #f87171; stroke-width: 4; stroke-linecap: round; }
+  </style>
+
+  <rect class="panel" x="40" y="60" width="300" height="220" rx="12" />
+  <text class="title" x="190" y="88">Center line</text>
+  <line class="floor" x1="190" y1="105" x2="190" y2="258" />
+  <rect class="foot" x="168" y="150" width="44" height="70" rx="20" />
+  <line class="x" x1="166" y1="196" x2="214" y2="244" />
+  <line class="x" x1="214" y1="196" x2="166" y2="244" />
+  <text class="caption" x="190" y="296">The foot must touch the line —</text>
+  <text class="caption" x="190" y="312">crossing it completely is a fault.</text>
+
+  <rect class="panel" x="380" y="60" width="300" height="220" rx="12" />
+  <text class="title" x="530" y="88">Net touch</text>
+  <line class="band" x1="430" y1="120" x2="630" y2="120" />
+  <g class="mesh">
+    <line x1="440" y1="126" x2="440" y2="250" />
+    <line x1="470" y1="126" x2="470" y2="250" />
+    <line x1="500" y1="126" x2="500" y2="250" />
+    <line x1="530" y1="126" x2="530" y2="250" />
+    <line x1="560" y1="126" x2="560" y2="250" />
+    <line x1="590" y1="126" x2="590" y2="250" />
+    <line x1="620" y1="126" x2="620" y2="250" />
+    <line x1="430" y1="150" x2="630" y2="150" />
+    <line x1="430" y1="180" x2="630" y2="180" />
+    <line x1="430" y1="210" x2="630" y2="210" />
+    <line x1="430" y1="240" x2="630" y2="240" />
+  </g>
+  <rect class="hand" x="505" y="96" width="52" height="30" rx="14" />
+  <line class="x" x1="496" y1="94" x2="566" y2="128" />
+  <line class="x" x1="566" y1="94" x2="496" y2="128" />
+  <text class="caption" x="530" y="296">Touching the net between the antennas</text>
+  <text class="caption" x="530" y="312">or the top band is a fault.</text>
+</svg>

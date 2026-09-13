@@ -1,0 +1,172 @@
+# Tempo
+
+A 3D volleyball teaching tool. Author plays, choreograph cameras, record video, teach on any device.
+
+Tempo is the implementation of the **Project Rotation** blueprint: a browser-based play designer where a coach draws serve receive, attack, defense, block and transition plays on an accurate 3D court, records them as shareable video, and presents them to the team from a phone at the gym.
+
+Built by **Pranesh Selvaraj** — volleyball player and developer ([@Pranesh-Selvaraj](https://github.com/Pranesh-Selvaraj)).
+
+## Features
+
+- **Interactive play mode** — skip setup and start on the court: drag the receive formation, tap three ball targets, pick the block count, mark the spike, watch it animate, then save or record
+- **Roster & positions** — live panel showing who is who, their role, current zone (4–3–2 / 5–6–1) and task (receiver / setter / spiker / blocker)
+- **Undo / redo everywhere in quick mode** — player moves, ball targets, blocks and step changes (`Ctrl+Z` / `Ctrl+Shift+Z`), plus draggable ball markers and arrow-key nudging
+- **Accurate 3D court** — 18 × 9 m floor, 2.43 m net, 3 m attack lines, antennas, rotation zones 1–6
+- **Authored ball trajectories** — click out Catmull-Rom bezier paths per action (serve / pass / set / attack / block / dig), no physics engine
+- **Timeline keyframe animation** — record player positions + poses, scrub, retime, slow motion, frame stepping
+- **Procedural player poses** — ready, pass, set, serve, approach, jump, spike, block, dive, celebrate
+- **Camera choreography** — coaching view, top-down, attacker POV, setter POV, sideline + authored dolly paths with captured keys
+- **Teaching layer** — phase markers with coaching notes, 3D annotations with visibility windows, movement ghost trails, court zone overlay
+- **Client-side video export** — MediaRecorder captures the canvas, ffmpeg.wasm converts to MP4 (WhatsApp / Instagram / Presentation / Slow-mo / GIF presets) or GLB
+- **Studio render** — frame-perfect, deterministic WebCodecs (H.264/VP9) encoding via mp4-muxer, with an in-browser background render queue
+- **GLB player models** — load any Mixamo/skinned `.glb`, map its clips to the 12 volleyball poses, auto-scale and root-motion stripping; falls back to the procedural mannequin
+- **File hosting** — authenticated upload endpoint storing to local `/uploads` or Cloudflare R2, with a direct video link + QR code
+- **Sharing** — public read-only play links, QR codes, Web Share API, `navigator.share()` with the video file
+- **Presentation mode (PWA)** — full-screen `/present/:playId` with chapter bar for gym-side teaching
+- **Drill mode** — guided phase-by-phase walkthrough with hidden/revealed ball paths
+- **Rules reference** — 45 seeded rules across scoring, rotations, faults, contact, net, serve and libero, with court diagrams for visual learners and the official **FIVB Volleyball Rules 2025–2028** bundled as a PDF in the app
+- **Dual database** — PostgreSQL 16 in production, or embedded PGlite for a zero-dependency local run
+
+## Tech Stack
+
+React 18 · Vite · TypeScript · Three.js · React Three Fiber · drei · postprocessing · Node 20 · Express · tRPC v10 · Drizzle ORM · PostgreSQL 16 / PGlite · Zustand · Zod · Tailwind · ffmpeg.wasm · WebCodecs · mp4-muxer
+
+## Quick Start
+
+```bash
+# 1. Install
+pnpm install
+
+# 2. Configure the backend
+cp .env.example apps/backend/.env
+#    Postgres via Docker:
+#      docker compose up -d
+#    …or, if Docker is not available, run the embedded database instead:
+#      DATABASE_URL=pglite://./.pglite
+
+# 3. Migrate + seed the database, build shared types, generate PWA icons
+pnpm setup
+
+# 4. Run backend (4000) + frontend (5173) together
+pnpm dev
+```
+
+Open <http://localhost:5173>, create an account, and hit **New play**.
+
+### Scripts
+
+| Command | What it does |
+| --- | --- |
+| `pnpm dev` | Builds shared types, then runs API + web in watch mode |
+| `pnpm build` | Type-checks and builds every package |
+| `pnpm typecheck` | Type-checks every package |
+| `pnpm setup` | Shared-types build, PWA icons, DB migrate + seed |
+| `pnpm db:generate` | Generates Drizzle migrations from the schema |
+| `pnpm db:migrate` | Applies migrations (works on Postgres and PGlite) |
+| `pnpm db:seed` | Seeds/updates the 45 volleyball rules |
+| `pnpm smoke` | End-to-end API smoke test (auth → play → keyframes → trajectories → duplicate → rules) |
+
+## The 60-second tour
+
+1. **Library** — create a play, pick category, rotation, court and net height.
+2. **Author** — choose the *Ball* tool, pick the action type (color-coded), set the control-point height, and click the court to draw the flight. Finish the path.
+3. **Animate** — drag players into position, pick their pose, put the playhead where you want a beat, and press **Record keyframe** (or `K`). Scrub to watch the interpolation.
+4. **Teach** — add phases (or generate them from the ball paths), drop 3D notes, toggle zones and ghost trails.
+5. **Camera** — orbit to a view, capture camera keys into a path, then preview the path during playback.
+6. **Export** — choose WhatsApp / Instagram / Presentation / Slow-mo / GIF / GLB in **Realtime capture**, or switch to **Studio render** for a frame-perfect MP4 (WebCodecs, queued in the background). Then download, Web Share, upload for a direct link, or scan the QR code.
+7. **Present** — open `/present/:playId` on a phone, add it to the home screen, and teach chapter by chapter.
+
+### In a hurry? Interactive play
+
+Open **Library → Interactive play** to skip play creation entirely. You start on the court with your rotation already set:
+
+1. Drag the six silhouettes to your receive formation and lock it.
+2. Tap three spots on the court — where the serve lands, where the pass goes and where the ball should be set.
+3. Drag players to their spike-time spots (dashed lines show each run), choose 0–3 blocks and tap where the spike lands.
+4. Press **Watch the play** — serve, pass, set and spike animate with the ball. Then save it as a normal play or jump straight to recording a video.
+
+Undo/redo covers every step (`Ctrl+Z` / `Ctrl+Shift+Z`), the roster panel explains who is who and which zone they play, and ball markers can be dragged or nudged with the arrow keys.
+
+### Player models (Sprint 5)
+
+Tempo ships with a fully procedural mannequin (12 poses built from damped joints) so it works with zero assets. To use
+a real skinned model:
+
+1. Download a character from Mixamo (or any GLB/GLTF viewer-ready rig) as **FBX Binary / glTF**, and drop the `.glb`
+   into `apps/frontend/public/models/` (gitignored — licensed models are never committed).
+2. In the editor's **Player model** panel, enter `/models/player.glb` (or use **Open local .glb** for a quick preview)
+   and press **Load**.
+3. Adjust **Facing offset** (Mixamo faces the opposite way to the mannequin, so 180° is the default), **Scale** and
+   **Animation speed**. Auto-scale normalises cm/m rigs to 1.85 m.
+4. Under **Pose → clip mapping**, each of the 12 volleyball poses is auto-matched to a clip by name (`spike`, `block`,
+   `run`, …) — override any mapping manually. The mixer time is `currentMs` plus a per-player offset, so GLB poses are
+   deterministic during playback and studio renders.
+5. Root motion (horizontal hip translation) is stripped so players stay exactly where they were authored, while jump
+   height is preserved.
+
+If the model fails to load or animate, the mannequin is used automatically.
+
+## Keyboard shortcuts
+
+| Key | Action |
+| --- | --- |
+| `Space` | Play / pause |
+| `←` / `→` | Step one frame (hold `Shift` for 10) |
+| `K` | Record keyframe at playhead |
+| `Esc` | Cancel drawing / clear selection |
+| `Delete` | Delete the selected keyframe, ball path, phase, note or camera path |
+
+## Repository layout
+
+```
+apps/
+  backend/          Express + tRPC API, Drizzle schema, migrations, rules seed
+  frontend/         Vite + React SPA, R3F court, editor, recorder, PWA
+    public/rules/   FIVB rule book PDF + rule diagrams (SVG)
+packages/
+  shared-types/     Zod schemas, court constants, interpolation helpers
+```
+
+## Deployment notes
+
+- **COOP/COEP**: ffmpeg.wasm needs `SharedArrayBuffer`, so both the API and the origin serving the SPA must send:
+  `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`.
+  Vite (dev + preview) and Express already do this.
+- **Database**: set `DATABASE_URL` to your Postgres instance and run `pnpm db:migrate && pnpm db:seed`.
+  `pglite://<dir>` switches to the embedded database for local demos.
+- **Player models**: drop licensed Mixamo `.glb` files into `apps/frontend/public/models/` (gitignored) and select
+  them in the editor's Player model panel — see the Player models section above. The procedural mannequins remain the
+  zero-asset default and the fallback for broken/missing models.
+- **Recording storage**: `POST /api/upload?filename=…` (raw body + JWT) writes to `apps/backend/uploads/` and returns a
+  public URL. Set `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` and `R2_PUBLIC_URL` to store
+  recordings in Cloudflare R2 instead — signing is implemented with `node:crypto` (AWS SigV4) and needs no SDK.
+- **Studio renders** require WebCodecs (`VideoEncoder`) — Chrome/Edge today. Firefox/Safari users can still use the
+  realtime MediaRecorder → ffmpeg.wasm path.
+
+## Sprint status vs. blueprint
+
+| Sprint | Status |
+| --- | --- |
+| 1 · 3D court foundation | ✅ court, net, antennas, zones, 6 players, camera presets |
+| 2 · Ball & trajectory | ✅ bezier editor, colored tubes, landing markers, action types |
+| 3 · Timeline & keyframes | ✅ scrubber, record keyframe, interpolation, persistence, library |
+| 4 · Teaching layer | ✅ phases, annotations, ghost trails, slow-mo, frame stepping |
+| 5 · Player models | ✅ GLB loader with clip mapping, deterministic mixer, auto-scale, root-motion stripping, mannequin fallback |
+| 6 · Camera choreography | ✅ capture keys, multiple paths, path playback, presets |
+| 7 · Recording core | ✅ MediaRecorder → ffmpeg.wasm → MP4/GIF, download, Web Share |
+| 8 · Export presets & share | ✅ presets, QR codes, public read-only links |
+| 9 · Presentation mode (PWA) | ✅ manifest, service worker, full-screen route, chapter bar |
+| 10 · Studio export | ✅ frame-by-frame WebCodecs render, background queue, upload to `/uploads` or R2 |
+| 11 · Interactive play | ✅ start-on-court quick mode, tap-to-target ball paths, block stepper, undo/redo, roster panel, save → advanced editor |
+
+## Author
+
+**Pranesh Selvaraj** — volleyball player and builder of Tempo.
+
+- GitHub: [@Pranesh-Selvaraj](https://github.com/Pranesh-Selvaraj)
+- The official **FIVB Volleyball Rules 2025–2028** PDF is bundled under `apps/frontend/public/rules/` for offline reference. All rights to the rule book remain with the FIVB; the court diagrams are original illustrations for this project.
+- Security policy: see [SECURITY.md](./SECURITY.md).
+
+## License
+
+MIT — see [LICENSE](./LICENSE).

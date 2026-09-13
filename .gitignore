@@ -1,0 +1,25 @@
+node_modules/
+dist/
+build/
+coverage/
+*.log
+*.tsbuildinfo
+.DS_Store
+*:Zone.Identifier
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Local (PGlite) database used when no Postgres/Docker is available
+apps/backend/.pglite/
+
+# Uploaded recordings (DB stores metadata only)
+apps/backend/uploads/*
+!apps/backend/uploads/.gitkeep
+
+# Mixamo / licensed player models are user-supplied, never committed
+apps/frontend/public/models/*.glb
+apps/frontend/public/models/*.fbx
+!apps/frontend/public/models/.gitkeep

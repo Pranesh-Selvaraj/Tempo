@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 400" role="img" aria-labelledby="title desc">
+  <title id="title">Libero rules</title>
+  <desc id="desc">The libero plays in the back row, can be replaced unlimited times, and may not serve, block or attack above the net from the front row.</desc>
+  <style>
+    .court { fill: rgba(148,163,184,0.07); stroke: #cbd5e1; stroke-width: 2; }
+    .net { stroke: #f8fafc; stroke-width: 4; }
+    .dash { stroke: #f59e0b; stroke-width: 2; stroke-dasharray: 8 6; }
+    .team { fill: rgba(148,163,184,0.16); stroke: #94a3b8; stroke-width: 2; }
+    .lib { fill: rgba(192,132,252,0.2); stroke: #c084fc; stroke-width: 2.5; }
+    .libtext { fill: #e9d5ff; font: 700 13px ui-sans-serif, system-ui, sans-serif; text-anchor: middle; }
+    .swap { stroke: #c084fc; stroke-width: 2.5; fill: none; marker-start: url(#both); marker-end: url(#both); }
+    .label { fill: #94a3b8; font: 600 12px ui-sans-serif, system-ui, sans-serif; }
+    .caption { fill: #cbd5e1; font: 500 13px ui-sans-serif, system-ui, sans-serif; }
+    .no { stroke: #f87171; stroke-width: 2; fill: none; }
+    .notitle { fill: #e2e8f0; font: 600 13px ui-sans-serif, system-ui, sans-serif; }
+    .sub { fill: #94a3b8; font: 500 11px ui-sans-serif, system-ui, sans-serif; }
+    .cross { stroke: #f87171; stroke-width: 2; }
+  </style>
+  <defs>
+    <marker id="both" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#c084fc" />
+    </marker>
+  </defs>
+
+  <line class="net" x1="100" y1="90" x2="420" y2="90" />
+  <rect class="court" x="120" y="90" width="280" height="250" rx="3" />
+  <line class="dash" x1="120" y1="173" x2="400" y2="173" />
+
+  <circle class="team" cx="160" cy="135" r="18" />
+  <circle class="team" cx="260" cy="135" r="18" />
+  <circle class="team" cx="360" cy="135" r="18" />
+  <circle class="team" cx="160" cy="247" r="18" />
+  <circle class="lib" cx="260" cy="247" r="24" />
+  <text class="libtext" x="260" y="252">L</text>
+  <circle class="team" cx="360" cy="247" r="18" />
+
+  <path class="swap" d="M 230 247 L 186 247" />
+  <path class="swap" d="M 290 247 L 334 247" />
+  <text class="label" x="260" y="322" text-anchor="middle">unlimited replacements</text>
+
+  <g>
+    <circle class="no" cx="472" cy="128" r="15" />
+    <line class="cross" x1="461" y1="117" x2="483" y2="139" />
+    <text class="notitle" x="500" y="124">No serving</text>
+    <text class="sub" x="500" y="140">may not serve, ever</text>
+
+    <circle class="no" cx="472" cy="200" r="15" />
+    <line class="cross" x1="461" y1="189" x2="483" y2="211" />
+    <text class="notitle" x="500" y="196">No blocking</text>
+    <text class="sub" x="500" y="212">nor attempting to block</text>
+
+    <circle class="no" cx="472" cy="272" r="15" />
+    <line class="cross" x1="461" y1="261" x2="483" y2="283" />
+    <text class="notitle" x="500" y="268">No attack above the net</text>
+    <text class="sub" x="500" y="284">front row must be replaced</text>
+  </g>
+
+  <text class="caption" x="360" y="378" text-anchor="middle">The libero wears a contrasting uniform and may only play in the back row.</text>
+</svg>

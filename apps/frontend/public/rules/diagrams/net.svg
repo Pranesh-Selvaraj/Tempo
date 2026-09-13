@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 400" role="img" aria-labelledby="title desc">
+  <title id="title">Net, antennas and legal crossing corridor</title>
+  <desc id="desc">Net elevation: 2.43 m men and 2.24 m women, antennas extending 0.8 m above the net. The ball must cross between the antennas.</desc>
+  <style>
+    .floor { stroke: #cbd5e1; stroke-width: 3; }
+    .post { stroke: #94a3b8; stroke-width: 6; }
+    .band { stroke: #f8fafc; stroke-width: 7; }
+    .mesh { stroke: #475569; stroke-width: 1; }
+    .ant { stroke: #f87171; stroke-width: 4; stroke-dasharray: 8 6; }
+    .dim { stroke: #38bdf8; stroke-width: 1.5; }
+    .label { fill: #94a3b8; font: 600 12px ui-sans-serif, system-ui, sans-serif; }
+    .caption { fill: #cbd5e1; font: 500 13px ui-sans-serif, system-ui, sans-serif; }
+    .good { stroke: #4ade80; stroke-width: 2.5; fill: none; marker-end: url(#goodhead); }
+    .bad { stroke: #f87171; stroke-width: 2.5; fill: none; marker-end: url(#badhead); }
+    .ball { fill: #f8fafc; stroke: #38bdf8; stroke-width: 2; }
+  </style>
+  <defs>
+    <marker id="goodhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4ade80" />
+    </marker>
+    <marker id="badhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#f87171" />
+    </marker>
+  </defs>
+
+  <line class="floor" x1="60" y1="340" x2="660" y2="340" />
+  <line class="post" x1="170" y1="340" x2="170" y2="130" />
+  <line class="post" x1="550" y1="340" x2="550" y2="130" />
+  <line class="band" x1="170" y1="130" x2="550" y2="130" />
+  <g class="mesh">
+    <line x1="200" y1="136" x2="200" y2="340" />
+    <line x1="240" y1="136" x2="240" y2="340" />
+    <line x1="280" y1="136" x2="280" y2="340" />
+    <line x1="320" y1="136" x2="320" y2="340" />
+    <line x1="360" y1="136" x2="360" y2="340" />
+    <line x1="400" y1="136" x2="400" y2="340" />
+    <line x1="440" y1="136" x2="440" y2="340" />
+    <line x1="480" y1="136" x2="480" y2="340" />
+    <line x1="520" y1="136" x2="520" y2="340" />
+    <line x1="170" y1="170" x2="550" y2="170" />
+    <line x1="170" y1="210" x2="550" y2="210" />
+    <line x1="170" y1="250" x2="550" y2="250" />
+    <line x1="170" y1="290" x2="550" y2="290" />
+  </g>
+
+  <line class="ant" x1="170" y1="130" x2="170" y2="52" />
+  <line class="ant" x1="550" y1="130" x2="550" y2="52" />
+  <text class="label" x="170" y="42" text-anchor="middle">Antenna +0.8 m</text>
+  <text class="label" x="550" y="42" text-anchor="middle">Antenna +0.8 m</text>
+
+  <line class="dim" x1="360" y1="130" x2="360" y2="340" />
+  <text class="label" x="372" y="240">2.43 m men</text>
+  <text class="label" x="372" y="256">2.24 m women</text>
+
+  <path class="good" d="M 110 170 Q 360 108 610 170" />
+  <circle class="ball" cx="360" cy="118" r="9" />
+  <text class="label" x="360" y="100" text-anchor="middle" fill="#4ade80">crosses between the antennas</text>
+
+  <text class="caption" x="360" y="378" text-anchor="middle">Crossing the net plane outside the antennas, or touching an antenna, is a fault.</text>
+</svg>

@@ -1,0 +1,42 @@
+{
+  "name": "@tempo/backend",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/db/migrate.ts",
+    "db:seed": "tsx src/db/seed.ts",
+    "db:setup": "pnpm run db:migrate && pnpm run db:seed",
+    "smoke": "tsx src/scripts/smoke.ts",
+    "demo": "tsx src/scripts/demo.ts"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@tempo/shared-types": "workspace:*",
+    "@trpc/server": "10.45.4",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.45.2",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.1",
+    "superjson": "^2.2.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^22.10.2",
+    "@types/pg": "^8.11.10",
+    "drizzle-kit": "^0.31.10",
+    "tsx": "^4.19.2",
+    "typescript": "^5.9.3"
+  }
+}

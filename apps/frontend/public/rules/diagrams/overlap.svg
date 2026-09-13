@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 400" role="img" aria-labelledby="title desc">
+  <title id="title">Front-to-back and side-to-side overlap</title>
+  <desc id="desc">At the instant of the serve, each front-row player must be closer to the net than the back-row player directly behind them, and left-to-right order must be kept within each row.</desc>
+  <style>
+    .court { fill: rgba(148,163,184,0.07); stroke: #cbd5e1; stroke-width: 2; }
+    .net { stroke: #f8fafc; stroke-width: 4; }
+    .dash { stroke: #f59e0b; stroke-width: 2; stroke-dasharray: 8 6; }
+    .zone { fill: rgba(56,189,248,0.12); stroke: #38bdf8; stroke-width: 2; }
+    .num { fill: #e2e8f0; font: 700 22px ui-sans-serif, system-ui, sans-serif; text-anchor: middle; }
+    .vline { stroke: #4ade80; stroke-width: 1.5; stroke-dasharray: 5 5; }
+    .hline { stroke: #c084fc; stroke-width: 2; fill: none; marker-start: url(#m); marker-end: url(#m); }
+    .label { fill: #94a3b8; font: 600 12px ui-sans-serif, system-ui, sans-serif; }
+    .caption { fill: #cbd5e1; font: 500 13px ui-sans-serif, system-ui, sans-serif; }
+    .small { fill: #64748b; font: 500 11px ui-sans-serif, system-ui, sans-serif; text-anchor: middle; }
+  </style>
+  <defs>
+    <marker id="m" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#c084fc" />
+    </marker>
+  </defs>
+
+  <line class="net" x1="185" y1="80" x2="535" y2="80" />
+  <text class="label" x="545" y="85">Net</text>
+  <rect class="court" x="210" y="80" width="300" height="270" rx="3" />
+  <line class="dash" x1="210" y1="170" x2="510" y2="170" />
+  <text class="label" x="200" y="168" text-anchor="end">attack line</text>
+
+  <line class="vline" x1="260" y1="120" x2="260" y2="280" />
+  <line class="vline" x1="360" y1="120" x2="360" y2="280" />
+  <line class="vline" x1="460" y1="120" x2="460" y2="280" />
+
+  <path class="hline" d="M 284 100 L 436 100" />
+  <path class="hline" d="M 284 300 L 436 300" />
+
+  <circle class="zone" cx="260" cy="120" r="22" />
+  <text class="num" x="260" y="128">4</text>
+  <circle class="zone" cx="360" cy="120" r="22" />
+  <text class="num" x="360" y="128">3</text>
+  <circle class="zone" cx="460" cy="120" r="22" />
+  <text class="num" x="460" y="128">2</text>
+  <circle class="zone" cx="260" cy="280" r="22" />
+  <text class="num" x="260" y="288">5</text>
+  <circle class="zone" cx="360" cy="280" r="22" />
+  <text class="num" x="360" y="288">6</text>
+  <circle class="zone" cx="460" cy="280" r="22" />
+  <text class="num" x="460" y="288">1</text>
+
+  <text class="small" x="360" y="96">left · 4 left of 3 · 3 left of 2 · right</text>
+  <text class="small" x="360" y="316">left · 5 left of 6 · 6 left of 1 · right</text>
+  <text class="small" x="360" y="340">each front-row player closer to the net</text>
+
+  <text class="caption" x="360" y="378" text-anchor="middle">Overlap is judged only at the instant the serve is contacted.</text>
+</svg>

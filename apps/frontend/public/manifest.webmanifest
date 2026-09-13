@@ -1,0 +1,50 @@
+{
+  "name": "Tempo — 3D Volleyball Play Designer",
+  "short_name": "Tempo",
+  "description": "Author 3D volleyball plays, choreograph cameras, record video, teach on any device.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
+  "background_color": "#0b1120",
+  "theme_color": "#0b1120",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Play library",
+      "url": "/",
+      "description": "Browse your authored plays"
+    },
+    {
+      "name": "Rules",
+      "url": "/rules",
+      "description": "Volleyball rules reference"
+    }
+  ]
+}

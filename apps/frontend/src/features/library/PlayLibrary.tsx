@@ -1,0 +1,241 @@
+import { useState, type FormEvent } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { BookOpen, LogOut, MousePointerClick, Plus, Volleyball } from 'lucide-react';
+import {
+  COURT_TYPES,
+  NET_HEIGHT_MEN,
+  NET_HEIGHT_WOMEN,
+  PLAY_CATEGORY_LABELS,
+  PLAY_CATEGORIES,
+  type PlayCategory,
+} from '@tempo/shared-types';
+import { cn } from '../../lib/cn';
+import { trpc } from '../../lib/trpc';
+import { useAuthStore } from '../../stores/authStore';
+import { Button, Field, Modal, NumberInput, Panel, Select, TextInput } from '../../components/ui';
+import { PlayCard } from './PlayCard';
+
+function NewPlayDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const navigate = useNavigate();
+  const utils = trpc.useContext();
+  const create = trpc.play.create.useMutation();
+  const [name, setName] = useState('');
+  const [category, setCategory] = useState<PlayCategory>('serve_receive');
+  const [rotation, setRotation] = useState(1);
+  const [courtType, setCourtType] = useState<'indoor' | 'beach'>('indoor');
+  const [netHeight, setNetHeight] = useState(NET_HEIGHT_MEN);
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    if (!name.trim()) return;
+    create.mutate(
+      { name: name.trim(), category, rotation, courtType, netHeight },
+      {
+        onSuccess: (play) => {
+          void utils.play.list.invalidate();
+          onClose();
+          navigate(`/play/${play.id}`);
+        },
+      },
+    );
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} title="New play">
+      <form className="space-y-3" onSubmit={submit}>
+        <Field label="Play name">
+          <TextInput
+            value={name}
+            autoFocus
+            required
+            placeholder="e.g. Rotation 3 — Stack Slide"
+            onChange={(event) => setName(event.target.value)}
+          />
+        </Field>
+        <div className="grid grid-cols-2 gap-2">
+          <Field label="Category">
+            <Select
+              value={category}
+              onChange={(event) => setCategory(event.target.value as PlayCategory)}
+            >
+              {PLAY_CATEGORIES.map((value) => (
+                <option key={value} value={value}>
+                  {PLAY_CATEGORY_LABELS[value]}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Rotation">
+            <Select value={String(rotation)} onChange={(event) => setRotation(Number(event.target.value))}>
+              {[1, 2, 3, 4, 5, 6].map((value) => (
+                <option key={value} value={value}>
+                  Rotation {value}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <Field label="Court">
+            <Select
+              value={courtType}
+              onChange={(event) => {
+                const value = event.target.value as 'indoor' | 'beach';
+                setCourtType(value);
+                setNetHeight(NET_HEIGHT_MEN);
+              }}
+            >
+              {COURT_TYPES.map((value) => (
+                <option key={value} value={value}>
+                  {value === 'indoor' ? 'Indoor' : 'Beach'}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Net height (m)">
+            <NumberInput
+              step={0.01}
+              value={netHeight}
+              onChange={(event) => setNetHeight(Number(event.target.value))}
+            />
+          </Field>
+        </div>
+        <div className="flex flex-wrap gap-1.5 text-[10px] text-slate-500">
+          {[NET_HEIGHT_MEN, NET_HEIGHT_WOMEN].map((height) => (
+            <button
+              key={height}
+              type="button"
+              className="chip hover:text-slate-200"
+              onClick={() => setNetHeight(height)}
+            >
+              {height === NET_HEIGHT_MEN ? "Men's" : "Women's"} {height} m
+            </button>
+          ))}
+        </div>
+        <div className="flex justify-end gap-2 pt-1">
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="primary" disabled={create.isLoading || !name.trim()}>
+            Create play
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+export function PlayLibrary() {
+  const [category, setCategory] = useState<PlayCategory | 'all'>('all');
+  const [newOpen, setNewOpen] = useState(false);
+  const user = useAuthStore((state) => state.user);
+  const clear = useAuthStore((state) => state.clear);
+
+  const list = trpc.play.list.useQuery(category === 'all' ? {} : { category });
+
+  return (
+    <div className="scroll-thin h-full overflow-y-auto">
+      <header className="flex items-center gap-3 border-b border-white/5 bg-panel-900/80 px-5 py-3">
+        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500/15 text-sky-300">
+          <Volleyball className="h-5 w-5" />
+        </span>
+        <div>
+          <h1 className="text-sm font-bold">Tempo</h1>
+          <p className="text-[10px] text-slate-500">
+            3D volleyball play designer · built by Pranesh Selvaraj
+          </p>
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          <Link to="/rules" className="btn">
+            <BookOpen className="h-3.5 w-3.5" />
+            Rules
+          </Link>
+          <span className="hidden text-xs text-slate-400 sm:block">
+            {user?.name ?? user?.email}
+          </span>
+          <Button variant="ghost" onClick={clear} title="Sign out">
+            <LogOut className="h-3.5 w-3.5" />
+          </Button>
+          <Link to="/interactive" className="btn btn-primary">
+            <MousePointerClick className="h-3.5 w-3.5" />
+            Interactive play
+          </Link>
+          <Button onClick={() => setNewOpen(true)}>
+            <Plus className="h-3.5 w-3.5" />
+            New play
+          </Button>
+        </div>
+      </header>
+
+      <div className="mx-auto max-w-6xl space-y-4 p-5">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setCategory('all')}
+            className={cn(
+              'chip',
+              category === 'all' && 'border-sky-400/50 bg-sky-500/15 text-sky-100',
+            )}
+          >
+            All plays
+          </button>
+          {PLAY_CATEGORIES.map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setCategory(value)}
+              className={cn(
+                'chip',
+                category === value && 'border-sky-400/50 bg-sky-500/15 text-sky-100',
+              )}
+            >
+              {PLAY_CATEGORY_LABELS[value]}
+            </button>
+          ))}
+        </div>
+
+        {list.isLoading ? (
+          <p className="py-10 text-center text-sm text-slate-500">Loading plays…</p>
+        ) : list.error ? (
+          <p className="py-10 text-center text-sm text-red-300">{list.error.message}</p>
+        ) : (list.data ?? []).length === 0 ? (
+          <Panel className="py-12 text-center">
+            <p className="text-sm font-medium text-slate-200">No plays yet</p>
+            <p className="mt-1 text-xs text-slate-500">
+              Start on the court right away, or create a play and draw ball paths.
+            </p>
+            <div className="mt-4 flex justify-center gap-2">
+              <Link to="/interactive" className="btn btn-primary">
+                <MousePointerClick className="h-3.5 w-3.5" />
+                Start interactive play
+              </Link>
+              <Button onClick={() => setNewOpen(true)}>
+                <Plus className="h-3.5 w-3.5" />
+                New play
+              </Button>
+            </div>
+          </Panel>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {(list.data ?? []).map((play) => (
+              <PlayCard key={play.id} play={play} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <footer className="border-t border-white/5 px-5 py-4 text-center text-[11px] text-slate-500">
+        Tempo — designed and built by{' '}
+        <a
+          href="https://github.com/Pranesh-Selvaraj"
+          target="_blank"
+          rel="noreferrer"
+          className="text-slate-300 underline-offset-2 hover:underline"
+        >
+          Pranesh Selvaraj
+        </a>
+        , volleyball player. MIT licensed.
+      </footer>
+
+      <NewPlayDialog open={newOpen} onClose={() => setNewOpen(false)} />
+    </div>
+  );
+}

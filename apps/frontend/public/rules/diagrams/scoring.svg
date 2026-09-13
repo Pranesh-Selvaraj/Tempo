@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 400" role="img" aria-labelledby="title desc">
+  <title id="title">Scoring system</title>
+  <desc id="desc">Rally scoring: every rally scores a point. Sets are first to 25 with a two point lead, matches are best of five, and the deciding set is to 15 with a side switch at 8.</desc>
+  <style>
+    .board { fill: #020617; stroke: #334155; stroke-width: 2; }
+    .digits { fill: #4ade80; font: 700 54px ui-monospace, SFMono-Regular, Menlo, monospace; text-anchor: middle; }
+    .boardlabel { fill: #64748b; font: 600 11px ui-sans-serif, system-ui, sans-serif; text-anchor: middle; letter-spacing: 2px; }
+    .rowtitle { fill: #e2e8f0; font: 600 14px ui-sans-serif, system-ui, sans-serif; }
+    .rowtext { fill: #94a3b8; font: 500 11.5px ui-sans-serif, system-ui, sans-serif; }
+    .caption { fill: #cbd5e1; font: 500 13px ui-sans-serif, system-ui, sans-serif; }
+  </style>
+
+  <rect class="board" x="48" y="96" width="256" height="170" rx="14" />
+  <text class="boardlabel" x="176" y="128">RALLY POINT · SET 4</text>
+  <text class="digits" x="176" y="200">24 : 23</text>
+  <text class="boardlabel" x="176" y="238">SET POINT</text>
+
+  <circle cx="350" cy="112" r="6" fill="#f59e0b" />
+  <text class="rowtitle" x="368" y="117">Every rally scores</text>
+  <text class="rowtext" x="368" y="134">No side-out — the rally winner serves next.</text>
+
+  <circle cx="350" cy="174" r="6" fill="#38bdf8" />
+  <text class="rowtitle" x="368" y="179">Win a set: 25 points</text>
+  <text class="rowtext" x="368" y="196">Always by a two-point lead; there is no cap.</text>
+
+  <circle cx="350" cy="236" r="6" fill="#4ade80" />
+  <text class="rowtitle" x="368" y="241">Win the match: 3 sets</text>
+  <text class="rowtext" x="368" y="258">Best of five sets takes the match.</text>
+
+  <circle cx="350" cy="298" r="6" fill="#c084fc" />
+  <text class="rowtitle" x="368" y="303">Deciding set: 15 points</text>
+  <text class="rowtext" x="368" y="320">Switch sides when the leader reaches 8.</text>
+
+  <text class="caption" x="360" y="378" text-anchor="middle">Each team may take two 30-second timeouts per set.</text>
+</svg>

@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 400" role="img" aria-labelledby="title desc">
+  <title id="title">Where and how to serve</title>
+  <desc id="desc">Server stands behind the end line within the extension of the sidelines, then strikes the ball so it crosses the net between the antennas.</desc>
+  <style>
+    .court { fill: rgba(148,163,184,0.07); stroke: #cbd5e1; stroke-width: 2; }
+    .net { stroke: #f8fafc; stroke-width: 4; }
+    .ext { stroke: #cbd5e1; stroke-width: 2; stroke-dasharray: 7 6; }
+    .dash { stroke: #f59e0b; stroke-width: 2; stroke-dasharray: 8 6; }
+    .ball { fill: #38bdf8; stroke: #0ea5e9; stroke-width: 2; }
+    .label { fill: #94a3b8; font: 600 13px ui-sans-serif, system-ui, sans-serif; }
+    .caption { fill: #cbd5e1; font: 500 13px ui-sans-serif, system-ui, sans-serif; }
+    .small { fill: #64748b; font: 500 11px ui-sans-serif, system-ui, sans-serif; }
+    .good { stroke: #4ade80; stroke-width: 2.5; fill: none; marker-end: url(#head); }
+    .bad { stroke: #f87171; stroke-width: 3; }
+  </style>
+  <defs>
+    <marker id="head" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4ade80" />
+    </marker>
+  </defs>
+
+  <line class="net" x1="185" y1="90" x2="535" y2="90" />
+  <line x1="210" y1="90" x2="210" y2="72" stroke="#f8fafc" stroke-width="3" />
+  <line x1="510" y1="90" x2="510" y2="72" stroke="#f8fafc" stroke-width="3" />
+  <text class="label" x="545" y="95">Antennas</text>
+
+  <rect class="court" x="210" y="90" width="300" height="250" rx="3" />
+  <line class="dash" x1="210" y1="173" x2="510" y2="173" />
+  <line class="ext" x1="210" y1="340" x2="210" y2="392" />
+  <line class="ext" x1="510" y1="340" x2="510" y2="392" />
+
+  <circle cx="455" cy="368" r="13" fill="rgba(56,189,248,0.15)" stroke="#38bdf8" stroke-width="2" />
+  <text class="small" x="455" y="372" text-anchor="middle">S</text>
+  <path class="good" d="M 445 356 Q 420 250 368 178" />
+  <circle class="ball" cx="360" cy="170" r="9" />
+
+  <line class="bad" x1="486" y1="328" x2="506" y2="348" />
+  <line class="bad" x1="506" y1="328" x2="486" y2="348" />
+  <text class="small" x="520" y="362">on the line = fault</text>
+
+  <text class="label" x="132" y="352" text-anchor="middle">Service zone</text>
+  <text class="small" x="132" y="370" text-anchor="middle">behind the end line</text>
+  <text class="small" x="132" y="386" text-anchor="middle">within sideline extension</text>
+
+  <text class="caption" x="360" y="24" text-anchor="middle">Toss or release the ball, then strike it within 8 seconds of the whistle.</text>
+</svg>

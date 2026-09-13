@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Tempo">
+  <rect width="512" height="512" rx="96" fill="#0b1120"/>
+  <rect x="51" y="166" width="410" height="180" rx="20" fill="#c98b4b"/>
+  <rect x="249" y="166" width="14" height="180" fill="#f8fafc"/>
+  <rect x="180" y="166" width="6" height="180" fill="#f8fafc" opacity="0.75"/>
+  <rect x="326" y="166" width="6" height="180" fill="#f8fafc" opacity="0.75"/>
+  <circle cx="368" cy="120" r="52" fill="#f8fafc"/>
+  <path d="M326 132 Q368 92 410 132" fill="none" stroke="#2563eb" stroke-width="12" stroke-linecap="round"/>
+  <path d="M356 74 Q386 120 356 166" fill="none" stroke="#facc15" stroke-width="12" stroke-linecap="round"/>
+</svg>

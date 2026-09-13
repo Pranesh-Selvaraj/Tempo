@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 400" role="img" aria-labelledby="title desc">
+  <title id="title">The six court positions</title>
+  <desc id="desc">Top-down court with the net at the top: front row 4, 3, 2 and back row 5, 6, 1. Position 1 is right back where the server starts.</desc>
+  <style>
+    .court { fill: rgba(148,163,184,0.07); stroke: #cbd5e1; stroke-width: 2; }
+    .net { stroke: #f8fafc; stroke-width: 4; }
+    .dash { stroke: #f59e0b; stroke-width: 2; stroke-dasharray: 8 6; }
+    .zone { fill: rgba(56,189,248,0.12); stroke: #38bdf8; stroke-width: 2; }
+    .num { fill: #e2e8f0; font: 700 24px ui-sans-serif, system-ui, sans-serif; text-anchor: middle; }
+    .label { fill: #94a3b8; font: 600 13px ui-sans-serif, system-ui, sans-serif; }
+    .caption { fill: #cbd5e1; font: 500 13px ui-sans-serif, system-ui, sans-serif; }
+    .small { fill: #64748b; font: 500 11px ui-sans-serif, system-ui, sans-serif; }
+  </style>
+
+  <line class="net" x1="185" y1="90" x2="535" y2="90" />
+  <line x1="210" y1="90" x2="210" y2="72" stroke="#f8fafc" stroke-width="3" />
+  <line x1="510" y1="90" x2="510" y2="72" stroke="#f8fafc" stroke-width="3" />
+  <text class="label" x="545" y="95">Net</text>
+
+  <rect class="court" x="210" y="90" width="300" height="250" rx="3" />
+  <line class="dash" x1="210" y1="173" x2="510" y2="173" />
+  <text class="label" x="368" y="166" text-anchor="middle">Attack line · 3 m</text>
+
+  <text class="label" x="198" y="140" text-anchor="end">FRONT ROW</text>
+  <text class="label" x="198" y="252" text-anchor="end">BACK ROW</text>
+
+  <g>
+    <circle class="zone" cx="260" cy="135" r="24" />
+    <text class="num" x="260" y="144">4</text>
+    <circle class="zone" cx="360" cy="135" r="24" />
+    <text class="num" x="360" y="144">3</text>
+    <circle class="zone" cx="460" cy="135" r="24" />
+    <text class="num" x="460" y="144">2</text>
+
+    <circle class="zone" cx="260" cy="247" r="24" />
+    <text class="num" x="260" y="256">5</text>
+    <circle class="zone" cx="360" cy="247" r="24" />
+    <text class="num" x="360" y="256">6</text>
+    <circle class="zone" cx="460" cy="247" r="24" />
+    <text class="num" x="460" y="256">1</text>
+  </g>
+
+  <text class="small" x="460" y="300" text-anchor="middle">server starts here</text>
+
+  <text class="caption" x="360" y="378" text-anchor="middle">Positions run 4–3–2 across the front row and 5–6–1 across the back row.</text>
+</svg>

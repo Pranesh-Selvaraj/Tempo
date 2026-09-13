@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 400" role="img" aria-labelledby="title desc">
+  <title id="title">Three contacts maximum</title>
+  <desc id="desc">A team may contact the ball three times: receive, set and attack. A block does not count as one of the three contacts.</desc>
+  <style>
+    .ring { stroke-width: 3; }
+    .r1 { fill: rgba(59,130,246,0.14); stroke: #3b82f6; }
+    .r2 { fill: rgba(34,197,94,0.14); stroke: #22c55e; }
+    .r3 { fill: rgba(239,68,68,0.14); stroke: #ef4444; }
+    .num { fill: #e2e8f0; font: 700 34px ui-sans-serif, system-ui, sans-serif; text-anchor: middle; }
+    .name { fill: #e2e8f0; font: 600 15px ui-sans-serif, system-ui, sans-serif; text-anchor: middle; }
+    .sub { fill: #94a3b8; font: 500 12px ui-sans-serif, system-ui, sans-serif; text-anchor: middle; }
+    .caption { fill: #cbd5e1; font: 500 13px ui-sans-serif, system-ui, sans-serif; }
+    .arrow { stroke: #64748b; stroke-width: 2.5; fill: none; marker-end: url(#tip); }
+    .note { fill: rgba(248,250,252,0.04); stroke: #475569; stroke-width: 1.5; stroke-dasharray: 6 5; }
+  </style>
+  <defs>
+    <marker id="tip" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b" />
+    </marker>
+  </defs>
+
+  <circle class="ring r1" cx="140" cy="160" r="52" />
+  <text class="num" x="140" y="172">1</text>
+  <text class="name" x="140" y="240">Receive</text>
+  <text class="sub" x="140" y="258">first contact</text>
+
+  <path class="arrow" d="M 200 160 L 268 160" />
+  <circle class="ring r2" cx="360" cy="160" r="52" />
+  <text class="num" x="360" y="172">2</text>
+  <text class="name" x="360" y="240">Set</text>
+  <text class="sub" x="360" y="258">second contact</text>
+
+  <path class="arrow" d="M 420 160 L 488 160" />
+  <circle class="ring r3" cx="580" cy="160" r="52" />
+  <text class="num" x="580" y="172">3</text>
+  <text class="name" x="580" y="240">Attack</text>
+  <text class="sub" x="580" y="258">third contact</text>
+
+  <rect class="note" x="150" y="300" width="420" height="52" rx="10" />
+  <text class="caption" x="360" y="322" text-anchor="middle">A block does not count as one of the three contacts.</text>
+  <text class="sub" x="360" y="340">Any part of the body is legal if the contact is simultaneous — no catch or throw.</text>
+</svg>
