@@ -14,6 +14,7 @@ import { useCameraStore } from '../../stores/cameraStore';
 import { useEditorStore } from '../../stores/editorStore';
 import { useQuickStore, type QuickFormation } from '../../stores/quickStore';
 import { Scene } from '../court/Scene';
+import { OrientationNotice } from './OrientationNotice';
 import { QuickHUD } from './QuickHUD';
 import { QuickRoster } from './QuickRoster';
 
@@ -192,6 +193,7 @@ export function QuickPlayPage() {
       <QuickRoster />
       <QuickCameraControls />
       <QuickHUD />
+      <OrientationNotice />
     </div>
   );
 }

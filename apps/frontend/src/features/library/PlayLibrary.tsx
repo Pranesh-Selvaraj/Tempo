@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BookOpen, ClipboardList, LogOut, MousePointerClick, Plus, Volleyball } from 'lucide-react';
+import { BookOpen, ClipboardList, LogOut, MousePointerClick, Plus, Search, Volleyball } from 'lucide-react';
 import {
   COURT_TYPES,
   FORMATION_INFO,
@@ -18,6 +18,7 @@ import type { Play } from '../../lib/trpc';
 import { useAuthStore } from '../../stores/authStore';
 import { ThemeSwitcher } from '../../components/ThemeSwitcher';
 import { Button, Field, Modal, NumberInput, Panel, Select, TextInput } from '../../components/ui';
+import { MatchHistoryPanel } from '../scorecard/MatchHistoryPanel';
 import { ScorecardWidget } from '../scorecard/ScorecardWidget';
 import { PlayCard } from './PlayCard';
 
@@ -188,11 +189,18 @@ function NewPlayDialog({ open, onClose }: { open: boolean; onClose: () => void }
 
 export function PlayLibrary() {
   const [category, setCategory] = useState<PlayCategory | 'all'>('all');
+  const [query, setQuery] = useState('');
   const [newOpen, setNewOpen] = useState(false);
   const user = useAuthStore((state) => state.user);
   const clear = useAuthStore((state) => state.clear);
 
   const list = trpc.play.list.useQuery(category === 'all' ? {} : { category });
+  const plays = list.data ?? [];
+  const filteredPlays = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    if (!term) return plays;
+    return plays.filter((play) => play.name.toLowerCase().includes(term));
+  }, [plays, query]);
 
   return (
     <div className="scroll-thin h-full overflow-y-auto">
@@ -233,67 +241,91 @@ export function PlayLibrary() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-6xl space-y-4 p-5">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => setCategory('all')}
-            className={cn(
-              'chip',
-              category === 'all' && 'border-sky-400/50 bg-sky-500/15 text-sky-100',
-            )}
-          >
-            All plays
-          </button>
-          {PLAY_CATEGORIES.map((value) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setCategory(value)}
-              className={cn(
-                'chip',
-                category === value && 'border-sky-400/50 bg-sky-500/15 text-sky-100',
-              )}
-            >
-              {PLAY_CATEGORY_LABELS[value]}
-            </button>
-          ))}
-        </div>
-
-        <ScorecardWidget />
-
-        {!list.isLoading && !list.error && (list.data ?? []).length > 0 && (
-          <LibraryStats plays={list.data ?? []} />
-        )}
-
-        {list.isLoading ? (
-          <p className="py-10 text-center text-sm text-slate-500">Loading plays…</p>
-        ) : list.error ? (
-          <p className="py-10 text-center text-sm text-red-300">{list.error.message}</p>
-        ) : (list.data ?? []).length === 0 ? (
-          <Panel className="py-12 text-center">
-            <p className="text-sm font-medium text-slate-200">No plays yet</p>
-            <p className="mt-1 text-xs text-slate-500">
-              Start on the court right away, or create a play and draw ball paths.
-            </p>
-            <div className="mt-4 flex justify-center gap-2">
-              <Link to="/interactive" className="btn btn-primary">
-                <MousePointerClick className="h-3.5 w-3.5" />
-                Start interactive play
-              </Link>
-              <Button onClick={() => setNewOpen(true)}>
-                <Plus className="h-3.5 w-3.5" />
-                New play
-              </Button>
-            </div>
-          </Panel>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {(list.data ?? []).map((play) => (
-              <PlayCard key={play.id} play={play} />
-            ))}
+      <div className="mx-auto max-w-7xl p-5">
+        <div className="grid items-start gap-4 lg:grid-cols-2">
+          <div className="min-w-0 space-y-4">
+            <ScorecardWidget />
+            <MatchHistoryPanel />
+            {!list.isLoading && !list.error && plays.length > 0 && <LibraryStats plays={plays} />}
           </div>
-        )}
+
+          <div className="min-w-0 space-y-4">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setCategory('all')}
+                className={cn(
+                  'chip',
+                  category === 'all' && 'border-sky-400/50 bg-sky-500/15 text-sky-100',
+                )}
+              >
+                All plays
+              </button>
+              {PLAY_CATEGORIES.map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setCategory(value)}
+                  className={cn(
+                    'chip',
+                    category === value && 'border-sky-400/50 bg-sky-500/15 text-sky-100',
+                  )}
+                >
+                  {PLAY_CATEGORY_LABELS[value]}
+                </button>
+              ))}
+            </div>
+
+            <Panel bodyClassName="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-sm font-semibold text-slate-100">Your plays</h2>
+                <span className="chip">{filteredPlays.length}</span>
+                <div className="relative ml-auto w-56">
+                  <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
+                  <TextInput
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Search plays…"
+                    className="pl-7"
+                  />
+                </div>
+              </div>
+
+              {list.isLoading ? (
+                <p className="py-10 text-center text-sm text-slate-500">Loading plays…</p>
+              ) : list.error ? (
+                <p className="py-10 text-center text-sm text-red-300">{list.error.message}</p>
+              ) : plays.length === 0 ? (
+                <div className="py-10 text-center">
+                  <p className="text-sm font-medium text-slate-200">No plays yet</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Start on the court right away, or create a play and draw ball paths.
+                  </p>
+                  <div className="mt-4 flex justify-center gap-2">
+                    <Link to="/interactive" className="btn btn-primary">
+                      <MousePointerClick className="h-3.5 w-3.5" />
+                      Start interactive play
+                    </Link>
+                    <Button onClick={() => setNewOpen(true)}>
+                      <Plus className="h-3.5 w-3.5" />
+                      New play
+                    </Button>
+                  </div>
+                </div>
+              ) : filteredPlays.length === 0 ? (
+                <p className="py-10 text-center text-sm text-slate-500">
+                  No plays match that search.
+                </p>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {filteredPlays.map((play) => (
+                    <PlayCard key={play.id} play={play} />
+                  ))}
+                </div>
+              )}
+            </Panel>
+          </div>
+        </div>
       </div>
 
       <footer className="border-t border-white/5 px-5 py-4 text-center text-[11px] text-slate-500">

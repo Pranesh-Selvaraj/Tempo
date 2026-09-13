@@ -2,9 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowLeft,
+  ArrowLeftRight,
+  Download,
   Pause,
   Play,
   Plus,
+  Printer,
   RotateCcw,
   Timer,
   Trash2,
@@ -16,19 +19,35 @@ import {
 import {
   FORMATION_INFO,
   FORMATIONS,
+  ROLE_COLORS,
   ROLE_LABELS,
   type Formation,
   type PlayerRole,
 } from '@tempo/shared-types';
+import { MatchReport } from './MatchReport';
 import { cn } from '../../lib/cn';
 import { ThemeSwitcher } from '../../components/ThemeSwitcher';
-import { Button, Field, Modal, Panel, Segmented, Select, TextInput } from '../../components/ui';
+import {
+  Button,
+  Field,
+  Modal,
+  NumberInput,
+  Panel,
+  Segmented,
+  Select,
+  TextInput,
+} from '../../components/ui';
 import { useScorecardStore } from '../../stores/scorecardStore';
 import {
+  COUNTDOWN_PRESETS_MS,
+  MATCH_TYPES,
+  MATCH_TYPE_INFO,
   SET_SUBS,
   SET_TIMEOUTS,
   STAFF_ROLES,
+  TIMEOUT_PRESETS,
   clockElapsedMs,
+  countdownRemainingMs,
   computeAnalytics,
   computePlayerStats,
   currentSetNumber,
@@ -45,6 +64,7 @@ import {
   substitutionLog,
   switchSidesAt,
   timeoutTimerRemainingMs,
+  type MatchType,
   type TeamSide,
 } from './match';
 import { useTicker } from './useTicker';
@@ -72,7 +92,7 @@ const TEAM_STYLES: Record<TeamSide, { text: string; border: string; button: stri
   },
 };
 
-function RotationTracker({ rotation }: { rotation: number }) {
+function RotationTracker({ rotation, label }: { rotation: number; label: string }) {
   const rows = [
     [4, 3, 2],
     [5, 6, 1],
@@ -98,7 +118,7 @@ function RotationTracker({ rotation }: { rotation: number }) {
         </div>
       ))}
       <p className="mt-1 text-[10px] uppercase tracking-wider text-slate-500">
-        Home rotation {rotation} · {rotationPositionLabel(rotation)}
+        {label} rotation {rotation} · {rotationPositionLabel(rotation)}
       </p>
     </div>
   );
@@ -126,6 +146,7 @@ function TeamPanel({ side, onSub }: { side: TeamSide; onSub: (side: TeamSide) =>
           title={serving ? 'Serving' : 'Receiving'}
         />
         <p className={cn('truncate text-sm font-bold', style.text)}>{name}</p>
+        <span className="chip">{(side === 'home') !== match.sidesSwapped ? 'Left court' : 'Right court'}</span>
         <span className="ml-auto chip">{setsWon(match, side)} sets</span>
       </div>
 
@@ -157,7 +178,7 @@ function TeamPanel({ side, onSub }: { side: TeamSide; onSub: (side: TeamSide) =>
           className="flex-1"
           onClick={() => timeout(side)}
           disabled={match.timeouts[side] >= SET_TIMEOUTS}
-          title="Take a 30-second timeout"
+          title={`Start a ${match.config.timeoutSeconds}-second timeout`}
         >
           <Timer className="h-3.5 w-3.5" />
           Timeout {match.timeouts[side]}/{SET_TIMEOUTS}
@@ -613,6 +634,138 @@ function CourtPositionMap({ side }: { side: TeamSide }) {
   );
 }
 
+function TeamPlayersList({
+  side,
+  onManage,
+}: {
+  side: TeamSide;
+  onManage: () => void;
+}) {
+  const match = useScorecardStore((state) => state.match);
+  const [editing, setEditing] = useState<number | null>(null);
+  const roster = match.rosters[side];
+  const lineup = match.lineups[side];
+  const rotation = side === 'home' ? match.homeRotation : match.awayRotation;
+  const positionOf = (id: string): number | null => {
+    const index = lineup.indexOf(id);
+    return index === -1 ? null : ((index + rotation - 1) % 6) + 1;
+  };
+
+  return (
+    <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
+      <div className="mb-2 flex items-center gap-2">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+          Players & starting positions
+        </p>
+        <span className="chip">{roster.players.length}</span>
+        <button
+          type="button"
+          onClick={onManage}
+          className="ml-auto text-[10px] text-sky-300 transition hover:text-sky-200"
+        >
+          Manage & add
+        </button>
+      </div>
+
+      {roster.players.length === 0 ? (
+        <p className="text-[10px] text-slate-500">
+          No players yet — add names, numbers and types, then tap a position on the court map to
+          set the starting lineup.
+        </p>
+      ) : (
+        <ul className="space-y-1">
+          {roster.players.map((player) => {
+            const position = positionOf(player.id);
+            return (
+              <li key={player.id}>
+                <button
+                  type="button"
+                  onClick={() => (position ? setEditing(position) : onManage())}
+                  className="flex w-full items-center gap-2 rounded-lg border border-white/5 bg-white/[0.03] px-2 py-1.5 text-left transition hover:border-sky-400/40"
+                  title={position ? 'Edit this starter' : 'Assign a starting position'}
+                >
+                  <span
+                    className={cn(
+                      'chip w-10 justify-center',
+                      position ? 'border-emerald-400/40 text-emerald-200' : 'text-slate-500',
+                    )}
+                  >
+                    {position ? `P${position}` : 'Bench'}
+                  </span>
+                  <span
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{ background: ROLE_COLORS[player.role] }}
+                  />
+                  <span className="w-9 text-right text-xs font-semibold tabular-nums text-slate-200">
+                    {player.number ? `#${player.number}` : '—'}
+                  </span>
+                  <span className="truncate text-xs text-slate-300">
+                    {player.name || 'Unnamed'}
+                  </span>
+                  <span className="ml-auto text-[9px] uppercase tracking-wide text-slate-500">
+                    {ROLE_SHORT[player.role]}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <Modal
+        open={editing !== null}
+        onClose={() => setEditing(null)}
+        title={`${side === 'home' ? match.config.homeName : match.config.awayName} · P${editing ?? ''} ${
+          editing ? positionLabel(editing) : ''
+        }`}
+      >
+        {editing !== null && (
+          <PositionForm
+            key={`${side}-list-${editing}`}
+            side={side}
+            position={editing}
+            onClose={() => setEditing(null)}
+          />
+        )}
+      </Modal>
+    </div>
+  );
+}
+
+function BenchStaff({ side }: { side: TeamSide }) {
+  const match = useScorecardStore((state) => state.match);
+  const roster = match.rosters[side];
+  const lineup = match.lineups[side];
+  const bench = roster.players.filter((player) => !lineup.includes(player.id));
+
+  return (
+    <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
+      <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+        Bench & staff
+      </p>
+      {bench.length > 0 ? (
+        <div className="mb-1 flex flex-wrap gap-1">
+          {bench.map((player) => (
+            <span key={player.id} className="chip">
+              {player.number ? `#${player.number} ` : ''}
+              {player.name || 'Unnamed'}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <p className="text-[10px] text-slate-500">
+          No bench players — use Lineups &amp; staff to add them.
+        </p>
+      )}
+      {roster.staff.length > 0 && (
+        <p className="mt-1 text-[10px] text-slate-500">
+          {roster.staff.map((member) => `${member.name || 'Unnamed'} (${member.role})`).join(' · ')}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function RosterSetupModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [side, setSide] = useState<TeamSide>('home');
   const match = useScorecardStore((state) => state.match);
@@ -943,33 +1096,73 @@ export function ScorecardPage() {
   const undo = useScorecardStore((state) => state.undo);
   const finishSet = useScorecardStore((state) => state.finishSet);
   const setTeamName = useScorecardStore((state) => state.setTeamName);
-  const setBestOf = useScorecardStore((state) => state.setBestOf);
+  const setMatchType = useScorecardStore((state) => state.setMatchType);
   const reset = useScorecardStore((state) => state.reset);
   const toggleClock = useScorecardStore((state) => state.toggleClock);
   const resetClock = useScorecardStore((state) => state.resetClock);
   const clearTimeoutTimer = useScorecardStore((state) => state.clearTimeoutTimer);
+  const setTimeoutSeconds = useScorecardStore((state) => state.setTimeoutSeconds);
+  const setCountdownDuration = useScorecardStore((state) => state.setCountdownDuration);
+  const toggleCountdown = useScorecardStore((state) => state.toggleCountdown);
+  const resetCountdown = useScorecardStore((state) => state.resetCountdown);
+  const swapSides = useScorecardStore((state) => state.swapSides);
   const sub = useScorecardStore((state) => state.sub);
   const [rosterOpen, setRosterOpen] = useState(false);
   const [subSide, setSubSide] = useState<TeamSide | null>(null);
 
-  const now = useTicker(match.clock.running || match.timeoutTimer.endsAt !== null);
+  const now = useTicker(
+    match.clock.running || match.timeoutTimer.endsAt !== null || match.countdown.running,
+  );
   const elapsedMs = clockElapsedMs(match, now);
   const timeoutRemaining = timeoutTimerRemainingMs(match, now);
+  const countdownRemaining = countdownRemainingMs(match, now);
 
   useEffect(() => {
     if (match.timeoutTimer.endsAt !== null && timeoutRemaining <= 0) clearTimeoutTimer();
   }, [match.timeoutTimer.endsAt, timeoutRemaining, clearTimeoutTimer]);
+
+  useEffect(() => {
+    if (match.countdown.running && countdownRemaining <= 0) toggleCountdown();
+  }, [match.countdown.running, countdownRemaining, toggleCountdown]);
 
   const handleSub = (side: TeamSide) => {
     if (match.rosters[side].players.length >= 6) setSubSide(side);
     else sub(side);
   };
 
+  const exportJson = () => {
+    const payload = {
+      app: 'Tempo',
+      exportedAt: new Date().toISOString(),
+      match,
+      analytics: computeAnalytics(match),
+      playerStats: computePlayerStats(match),
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `tempo-match-${new Date().toISOString().slice(0, 10)}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
   const setNumber = currentSetNumber(match);
   const target = setTarget(match);
   const deciding = isDecidingSet(match);
   const switchAt = switchSidesAt(match);
-  const shouldSwitch = switchAt !== null && (match.homeScore >= switchAt || match.awayScore >= switchAt);
+  const sidesNote =
+    switchAt === null
+      ? null
+      : match.deciderSwapped
+        ? 'Sides switched at 8'
+        : `Switch sides at ${switchAt}`;
+  const leftSide: TeamSide = match.sidesSwapped ? 'away' : 'home';
+  const rightSide: TeamSide = match.sidesSwapped ? 'home' : 'away';
+  const timerMinutes = Math.floor(match.countdown.durationMs / 60_000);
+  const timerSeconds = Math.floor((match.countdown.durationMs % 60_000) / 1000);
+  const setTimerParts = (minutes: number, seconds: number) =>
+    setCountdownDuration(Math.max(5, Math.max(0, minutes) * 60 + Math.min(59, Math.max(0, seconds))) * 1000);
 
   return (
     <div className="scroll-thin h-full overflow-y-auto bg-panel-950">
@@ -984,6 +1177,14 @@ export function ScorecardPage() {
           </p>
         </div>
         <div className="ml-auto flex items-center gap-2">
+          <Button onClick={() => window.print()} title="Print or save as PDF">
+            <Printer className="h-3.5 w-3.5" />
+            Print / PDF
+          </Button>
+          <Button onClick={exportJson} title="Download the match data as JSON">
+            <Download className="h-3.5 w-3.5" />
+            Export
+          </Button>
           <Button onClick={() => setRosterOpen(true)}>
             <Users className="h-3.5 w-3.5" />
             Lineups &amp; staff
@@ -1021,7 +1222,7 @@ export function ScorecardPage() {
         )}
 
         <Panel title="Match setup">
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Field label="Home team">
               <TextInput
                 value={match.config.homeName}
@@ -1034,30 +1235,69 @@ export function ScorecardPage() {
                 onChange={(event) => setTeamName('away', event.target.value)}
               />
             </Field>
-            <Field label="Format">
-              <Segmented<string>
-                value={String(match.config.bestOf)}
-                onChange={(value) => setBestOf(Number(value) as 3 | 5)}
-                options={[
-                  { value: '3', label: 'Best of 3' },
-                  { value: '5', label: 'Best of 5' },
-                ]}
-              />
+            <Field label="Match type" hint={MATCH_TYPE_INFO[match.config.type].short}>
+              <Select
+                value={match.config.type}
+                onChange={(event) => setMatchType(event.target.value as MatchType)}
+              >
+                {MATCH_TYPES.map((value) => (
+                  <option key={value} value={value} title={MATCH_TYPE_INFO[value].description}>
+                    {MATCH_TYPE_INFO[value].label} — {MATCH_TYPE_INFO[value].short}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Timeout length" hint="seconds, used by the timeout countdown">
+              <div className="flex items-center gap-1">
+                <NumberInput
+                  min={5}
+                  max={600}
+                  value={match.config.timeoutSeconds}
+                  onChange={(event) => setTimeoutSeconds(Number(event.target.value))}
+                  className="w-16"
+                />
+                <div className="flex flex-wrap gap-1">
+                  {TIMEOUT_PRESETS.map((seconds) => (
+                    <button
+                      key={seconds}
+                      type="button"
+                      onClick={() => setTimeoutSeconds(seconds)}
+                      className={cn(
+                        'chip',
+                        match.config.timeoutSeconds === seconds &&
+                          'border-sky-400/50 bg-sky-500/15 text-sky-100',
+                      )}
+                    >
+                      {seconds}s
+                    </button>
+                  ))}
+                </div>
+              </div>
             </Field>
           </div>
         </Panel>
 
-        <div className="grid gap-3 lg:grid-cols-[1fr_auto_1fr]">
-          <TeamPanel side="home" onSub={handleSub} />
+        <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,1fr)_320px_minmax(0,1fr)]">
+          <div className="min-w-0 space-y-3">
+            <TeamPanel side={leftSide} onSub={handleSub} />
+            <CourtPositionMap side={leftSide} />
+            <RotationTracker
+              rotation={leftSide === 'home' ? match.homeRotation : match.awayRotation}
+              label={leftSide === 'home' ? match.config.homeName : match.config.awayName}
+            />
+            <TeamPlayersList side={leftSide} onManage={() => setRosterOpen(true)} />
+            <BenchStaff side={leftSide} />
+          </div>
 
-          <div className="panel flex min-w-[220px] flex-col items-center justify-center gap-3 p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
-              Set {setNumber} of {maxSets(match.config.bestOf)}
+          <div className="panel flex min-w-0 flex-col items-center justify-center gap-3 p-4">
+            <p className="text-center text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+              Set {setNumber} of {Math.min(maxSets(match.config), 99)} ·{' '}
+              {MATCH_TYPE_INFO[match.config.type].label}
             </p>
             <p className="text-3xl font-black text-slate-100">
               {match.homeScore} : {match.awayScore}
             </p>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-center text-[11px] text-slate-400">
               {deciding ? `Deciding set · to ${target}` : `First to ${target}, win by 2`}
             </p>
             {match.winner && (
@@ -1066,10 +1306,14 @@ export function ScorecardPage() {
                 {match.winner === 'home' ? match.config.homeName : match.config.awayName} win
               </p>
             )}
-            {shouldSwitch && !match.winner && (
-              <p className="chip border-amber-400/40 text-amber-200">Switch sides at {switchAt}</p>
+            {sidesNote && !match.winner && (
+              <p className="chip border-amber-400/40 text-amber-200">{sidesNote}</p>
             )}
-            <RotationTracker rotation={match.homeRotation} />
+
+            <Button onClick={swapSides} title="Swap the teams left and right">
+              <ArrowLeftRight className="h-3.5 w-3.5" />
+              Swap sides
+            </Button>
 
             <div className="w-full border-t border-white/5 pt-3 text-center">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
@@ -1092,27 +1336,83 @@ export function ScorecardPage() {
                 </Button>
               </div>
             </div>
+
+            <div className="w-full border-t border-white/5 pt-3 text-center">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                Timer
+              </p>
+              <p className="my-1 font-mono text-3xl font-black tabular-nums text-slate-100">
+                {formatClock(countdownRemaining)}
+              </p>
+              <div className="flex justify-center gap-1">
+                <Button onClick={toggleCountdown}>
+                  {match.countdown.running ? (
+                    <Pause className="h-3.5 w-3.5" />
+                  ) : (
+                    <Play className="h-3.5 w-3.5" />
+                  )}
+                  {match.countdown.running ? 'Pause' : 'Start'}
+                </Button>
+                <Button onClick={resetCountdown} title="Reset timer">
+                  <RotateCcw className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+              <div className="mt-2 flex flex-wrap items-center justify-center gap-1">
+                {COUNTDOWN_PRESETS_MS.map((ms) => (
+                  <button
+                    key={ms}
+                    type="button"
+                    onClick={() => setCountdownDuration(ms)}
+                    className={cn(
+                      'chip',
+                      match.countdown.durationMs === ms &&
+                        'border-sky-400/50 bg-sky-500/15 text-sky-100',
+                    )}
+                  >
+                    {ms / 60_000}m
+                  </button>
+                ))}
+                <label className="flex items-center gap-1 text-[10px] text-slate-500">
+                  custom
+                  <NumberInput
+                    min={0}
+                    max={120}
+                    value={timerMinutes}
+                    onChange={(event) => setTimerParts(Number(event.target.value), timerSeconds)}
+                    className="h-6 w-12 py-0 text-[10px]"
+                  />
+                  min
+                  <NumberInput
+                    min={0}
+                    max={59}
+                    value={timerSeconds}
+                    onChange={(event) => setTimerParts(timerMinutes, Number(event.target.value))}
+                    className="h-6 w-12 py-0 text-[10px]"
+                  />
+                  s
+                </label>
+              </div>
+            </div>
           </div>
 
-          <TeamPanel side="away" onSub={handleSub} />
+          <div className="min-w-0 space-y-3">
+            <TeamPanel side={rightSide} onSub={handleSub} />
+            <CourtPositionMap side={rightSide} />
+            <RotationTracker
+              rotation={rightSide === 'home' ? match.homeRotation : match.awayRotation}
+              label={rightSide === 'home' ? match.config.homeName : match.config.awayName}
+            />
+            <TeamPlayersList side={rightSide} onManage={() => setRosterOpen(true)} />
+            <BenchStaff side={rightSide} />
+          </div>
         </div>
-
-        <Panel title="Starting positions">
-          <p className="mb-3 text-[11px] text-slate-500">
-            Tap any position on the court map to type a name, jersey number and player type — the
-            role pattern follows the selected formation, and the map tracks the live rotation.
-          </p>
-          <div className="grid gap-3 lg:grid-cols-2">
-            <CourtPositionMap side="home" />
-            <CourtPositionMap side="away" />
-          </div>
-        </Panel>
 
         <Analytics />
       </div>
 
       <RosterSetupModal open={rosterOpen} onClose={() => setRosterOpen(false)} />
       <SubstitutionModal side={subSide} onClose={() => setSubSide(null)} />
+      <MatchReport match={match} />
     </div>
   );
 }

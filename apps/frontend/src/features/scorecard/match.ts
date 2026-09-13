@@ -25,12 +25,63 @@ export interface MatchEvent {
   timeoutsBefore: { home: number; away: number };
   subsBefore: { home: number; away: number };
   setCompleted: boolean;
+  sidesSwappedBefore: boolean;
+  deciderSwappedBefore: boolean;
 }
+
+export const MATCH_TYPES = ['practice', 'single', 'best_of_3', 'best_of_5'] as const;
+export type MatchType = (typeof MATCH_TYPES)[number];
+
+export interface MatchTypeInfo {
+  label: string;
+  short: string;
+  description: string;
+  maxSets: number;
+  setTarget: number;
+  deciderTarget: number | null;
+}
+
+export const MATCH_TYPE_INFO: Record<MatchType, MatchTypeInfo> = {
+  practice: {
+    label: 'Practice match',
+    short: 'First to 25 · unlimited sets',
+    description:
+      'Training format: sets to 25 with win by 2, play as many sets as you like — nothing ends the match automatically.',
+    maxSets: 99,
+    setTarget: 25,
+    deciderTarget: null,
+  },
+  single: {
+    label: 'Single match',
+    short: 'One set to 25',
+    description: 'One set to 25, win by 2. The match ends with that set.',
+    maxSets: 1,
+    setTarget: 25,
+    deciderTarget: null,
+  },
+  best_of_3: {
+    label: 'Best of 3',
+    short: 'Sets to 25 · decider 15',
+    description: 'First to two sets: sets to 25, deciding set to 15.',
+    maxSets: 3,
+    setTarget: 25,
+    deciderTarget: 15,
+  },
+  best_of_5: {
+    label: 'Best of 5',
+    short: 'Sets to 25 · decider 15',
+    description: 'First to three sets: sets to 25, deciding set to 15.',
+    maxSets: 5,
+    setTarget: 25,
+    deciderTarget: 15,
+  },
+};
 
 export interface MatchConfig {
   homeName: string;
   awayName: string;
-  bestOf: 3 | 5;
+  type: MatchType;
+  timeoutSeconds: number;
 }
 
 export interface TeamPlayer {
@@ -81,9 +132,19 @@ export interface TimeoutTimer {
   endsAt: number | null;
 }
 
+export interface CountdownTimer {
+  durationMs: number;
+  accumulatedMs: number;
+  running: boolean;
+  startedAt: number | null;
+}
+
 export const TIMEOUT_SECONDS = 30;
+export const TIMEOUT_PRESETS = [30, 60, 90, 120] as const;
+export const COUNTDOWN_PRESETS_MS = [60_000, 5 * 60_000, 10 * 60_000, 20 * 60_000] as const;
 
 export interface MatchState {
+  id: string;
   config: MatchConfig;
   formations: { home: Formation; away: Formation };
   homeScore: number;
@@ -102,6 +163,11 @@ export interface MatchState {
   subEvents: SubEvent[];
   clock: MatchClock;
   timeoutTimer: TimeoutTimer;
+  countdown: CountdownTimer;
+  /** false = home team on the left, true = home team on the right. */
+  sidesSwapped: boolean;
+  /** Whether the deciding set has already switched sides at 8 points. */
+  deciderSwapped: boolean;
 }
 
 export const SET_TIMEOUTS = 2;
@@ -229,10 +295,12 @@ export function buildLineup(roster: TeamRoster): (string | null)[] {
 
 export function createMatch(config: Partial<MatchConfig> = {}): MatchState {
   return {
+    id: crypto.randomUUID(),
     config: {
       homeName: config.homeName ?? 'Home',
       awayName: config.awayName ?? 'Away',
-      bestOf: config.bestOf ?? 5,
+      type: config.type ?? 'best_of_5',
+      timeoutSeconds: config.timeoutSeconds ?? TIMEOUT_SECONDS,
     },
     formations: { home: '5-1', away: '5-1' },
     homeScore: 0,
@@ -251,6 +319,9 @@ export function createMatch(config: Partial<MatchConfig> = {}): MatchState {
     subEvents: [],
     clock: { running: false, accumulatedMs: 0, startedAt: null },
     timeoutTimer: { side: null, endsAt: null },
+    countdown: { durationMs: 5 * 60_000, accumulatedMs: 0, running: false, startedAt: null },
+    sidesSwapped: false,
+    deciderSwapped: false,
   };
 }
 
@@ -292,8 +363,60 @@ export function timeoutTimerRemainingMs(state: MatchState, now = Date.now()): nu
   return Math.max(0, state.timeoutTimer.endsAt - now);
 }
 
-export function maxSets(bestOf: 3 | 5): number {
-  return bestOf === 5 ? 5 : 3;
+export function countdownElapsedMs(state: MatchState, now = Date.now()): number {
+  const { running, accumulatedMs, startedAt } = state.countdown;
+  return accumulatedMs + (running && startedAt !== null ? Math.max(0, now - startedAt) : 0);
+}
+
+export function countdownRemainingMs(state: MatchState, now = Date.now()): number {
+  return Math.max(0, state.countdown.durationMs - countdownElapsedMs(state, now));
+}
+
+export function toggleCountdown(state: MatchState, now = Date.now()): MatchState {
+  if (state.countdown.running) {
+    return {
+      ...state,
+      countdown: {
+        ...state.countdown,
+        running: false,
+        accumulatedMs: countdownElapsedMs(state, now),
+        startedAt: null,
+      },
+    };
+  }
+  if (countdownRemainingMs(state, now) <= 0) {
+    return {
+      ...state,
+      countdown: { ...state.countdown, running: true, accumulatedMs: 0, startedAt: now },
+    };
+  }
+  return {
+    ...state,
+    countdown: { ...state.countdown, running: true, startedAt: now },
+  };
+}
+
+export function resetCountdown(state: MatchState): MatchState {
+  return {
+    ...state,
+    countdown: { ...state.countdown, running: false, accumulatedMs: 0, startedAt: null },
+  };
+}
+
+export function setCountdownDuration(state: MatchState, durationMs: number): MatchState {
+  return {
+    ...state,
+    countdown: {
+      durationMs: Math.max(5_000, durationMs),
+      accumulatedMs: 0,
+      running: false,
+      startedAt: null,
+    },
+  };
+}
+
+export function maxSets(config: MatchConfig): number {
+  return MATCH_TYPE_INFO[config.type].maxSets;
 }
 
 export function currentSetNumber(state: MatchState): number {
@@ -301,7 +424,9 @@ export function currentSetNumber(state: MatchState): number {
 }
 
 export function setTarget(state: MatchState): number {
-  return currentSetNumber(state) === maxSets(state.config.bestOf) ? 15 : 25;
+  const info = MATCH_TYPE_INFO[state.config.type];
+  const isDecider = info.maxSets > 1 && currentSetNumber(state) === info.maxSets;
+  return isDecider ? (info.deciderTarget ?? info.setTarget) : info.setTarget;
 }
 
 export function setsWon(state: MatchState, side: TeamSide): number {
@@ -315,12 +440,15 @@ export function matchPoint(state: MatchState, side: TeamSide): boolean {
   const target = setTarget(state);
   const own = side === 'home' ? state.homeScore : state.awayScore;
   const other = side === 'home' ? state.awayScore : state.homeScore;
-  const needed = Math.ceil(maxSets(state.config.bestOf) / 2);
+  const info = MATCH_TYPE_INFO[state.config.type];
+  if (info.maxSets === 1 || info.maxSets > 20) return false;
+  const needed = Math.ceil(info.maxSets / 2);
   return own >= target - 1 && own - other >= 1 && setsWon(state, side) === needed - 1;
 }
 
 export function isDecidingSet(state: MatchState): boolean {
-  return currentSetNumber(state) === maxSets(state.config.bestOf);
+  const info = MATCH_TYPE_INFO[state.config.type];
+  return info.maxSets > 1 && info.maxSets < 20 && currentSetNumber(state) === info.maxSets;
 }
 
 export function switchSidesAt(state: MatchState): number | null {
@@ -342,6 +470,8 @@ export function addPoint(state: MatchState, scoring: TeamSide): MatchState {
     timeoutsBefore: { ...state.timeouts },
     subsBefore: { ...state.subs },
     setCompleted: false,
+    sidesSwappedBefore: state.sidesSwapped,
+    deciderSwappedBefore: state.deciderSwapped,
   };
 
   let homeScore = state.homeScore + (scoring === 'home' ? 1 : 0);
@@ -354,6 +484,8 @@ export function addPoint(state: MatchState, scoring: TeamSide): MatchState {
   let subs = state.subs;
   let sets = state.sets;
   let winner: TeamSide | null = null;
+  let sidesSwapped = state.sidesSwapped;
+  let deciderSwapped = state.deciderSwapped;
 
   if (scoring !== serving) {
     serving = scoring;
@@ -370,15 +502,35 @@ export function addPoint(state: MatchState, scoring: TeamSide): MatchState {
     awayScore = 0;
     timeouts = { home: 0, away: 0 };
     subs = { home: 0, away: 0 };
-    const needed = Math.ceil(maxSets(state.config.bestOf) / 2);
-    if (setsWon({ ...state, sets }, 'home') >= needed) winner = 'home';
-    else if (setsWon({ ...state, sets }, 'away') >= needed) winner = 'away';
+    const info = MATCH_TYPE_INFO[state.config.type];
+    const after = { ...state, sets };
+    const completed = sets.at(-1);
+    if (info.maxSets === 1 && completed) {
+      winner = completed.home > completed.away ? 'home' : 'away';
+    } else if (info.maxSets < 20) {
+      const needed = Math.ceil(info.maxSets / 2);
+      if (setsWon(after, 'home') >= needed) winner = 'home';
+      else if (setsWon(after, 'away') >= needed) winner = 'away';
+    }
     serving = firstServe === 'home' ? 'away' : 'home';
     firstServe = serving;
+    // Teams switch courts after every set.
+    sidesSwapped = !sidesSwapped;
+    deciderSwapped = false;
+  } else if (
+    isDecidingSet(state) &&
+    !deciderSwapped &&
+    Math.max(homeScore, awayScore) >= 8
+  ) {
+    // Deciding set: switch at 8 points.
+    sidesSwapped = !sidesSwapped;
+    deciderSwapped = true;
   }
 
   return {
     ...state,
+    sidesSwapped,
+    deciderSwapped,
     homeScore,
     awayScore,
     serving,
@@ -409,18 +561,29 @@ export function undoPoint(state: MatchState): MatchState {
     sets: event.setCompleted ? state.sets.slice(0, -1) : state.sets,
     events: state.events.slice(0, -1),
     winner: null,
+    sidesSwapped: event.sidesSwappedBefore,
+    deciderSwapped: event.deciderSwappedBefore,
   };
 }
 
 export function nextSet(state: MatchState): MatchState {
-  if (state.winner || state.sets.length >= maxSets(state.config.bestOf) - 1) return state;
+  const info = MATCH_TYPE_INFO[state.config.type];
+  if (state.winner || state.sets.length >= info.maxSets - 1) return state;
   const completed: SetScore = { home: state.homeScore, away: state.awayScore };
   const sets = [...state.sets, completed];
-  const needed = Math.ceil(maxSets(state.config.bestOf) / 2);
   const homeSets = sets.filter((set) => set.home > set.away).length;
   const awaySets = sets.filter((set) => set.away > set.home).length;
+  const needed = Math.ceil(info.maxSets / 2);
   const winner: TeamSide | null =
-    homeSets >= needed ? 'home' : awaySets >= needed ? 'away' : null;
+    info.maxSets === 1
+      ? homeSets > 0
+        ? 'home'
+        : 'away'
+      : info.maxSets < 20 && homeSets >= needed
+        ? 'home'
+        : info.maxSets < 20 && awaySets >= needed
+          ? 'away'
+          : null;
   const serving = state.firstServe === 'home' ? 'away' : 'home';
   return {
     ...state,
@@ -432,7 +595,13 @@ export function nextSet(state: MatchState): MatchState {
     timeouts: { home: 0, away: 0 },
     subs: { home: 0, away: 0 },
     winner,
+    sidesSwapped: !state.sidesSwapped,
+    deciderSwapped: false,
   };
+}
+
+export function swapSides(state: MatchState): MatchState {
+  return { ...state, sidesSwapped: !state.sidesSwapped };
 }
 
 export function useTimeout(state: MatchState, side: TeamSide): MatchState {

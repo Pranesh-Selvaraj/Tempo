@@ -11,8 +11,12 @@ Built by **Pranesh Selvaraj** — volleyball player and developer ([@Pranesh-Sel
 - **Interactive play mode** — skip setup and start on the court: drag the receive formation, tap three ball targets, **pick who receives, sets and spikes**, pick the block count, mark the spike, watch natural curved runs animate, then save or record. Save your own **custom formation** at any time
 - **Theme options** — OLED Black, Midnight and Graphite, switchable from any header and remembered per device
 - **Formation systems** — 5-1, 6-2, 4-2 and 6-6 base positions per play, with or without a libero
-- **Match scorecard & analytics** — live rally scoring, sets, rotation tracking, timeouts with a **30-second countdown**, a **match clock/stopwatch**, substitutions, sideout %, points by rotation and longest runs (saved on the device)
-- **Home scoreboard** — a live scoreboard widget on the library page with scores, serving team, clock, timeouts and quick point buttons
+- **Match scorecard & analytics** — live rally scoring, sets, rotation tracking, timeouts with a **configurable countdown (5–600 s, presets)**, a **match clock/stopwatch**, a **general countdown timer with minutes + seconds**, substitutions, sideout %, points by rotation and longest runs (saved on the device)
+- **Court sides** — each team's panel, **players & starting-positions list**, court map, rotation tracker and bench/staff sit on their own side of the scoreboard, using the full desktop width; tap a player to set their position. Teams switch sides automatically at the end of every set and at 8 in the deciding set, with a manual **Swap sides** button
+- **Responsive** — the home dashboard and scorecard adapt from phones in portrait up to ultrawide desktops with no horizontal overflow
+- **Home dashboard** — searchable plays, plus a sidebar with the live scoreboard (sets pips, quick points, timeout countdown, match clock and the running timer), archived **match history** you can restore, and library stats
+- **Match types** — practice match (unlimited sets), single match, best of 3 and best of 5, each with the right set targets and deciding set
+- **Print & export** — print or save a full match report as PDF (sets, team analytics, points by rotation, lineups & staff, substitutions, player stats) or download the match as JSON
 - **Optional lineups & staff** — pick the playing formation, then tap the 2D court map to assign each position: jersey number, name and player type (setter / outside / middle / opposite / libero). Bench, coaches and support staff included; substitutions are player-for-player and per-player stats stay accurate across subs (service points, rallies on court, subs in, best serving run)
 - **Library analytics** — play counts, categories and sharing stats at a glance
 - **Roster & positions** — live panel showing who is who, their role, current zone (4–3–2 / 5–6–1) and task (receiver / setter / spiker / blocker)
@@ -84,7 +88,7 @@ Open <http://localhost:5173>, create an account, and hit **New play**.
 
 ### In a hurry? Interactive play
 
-Open **Library → Interactive play** to skip play creation entirely. You start on the court with your rotation already set:
+Interactive play is desktop-first: on a phone it asks you to rotate to landscape for the full court, roster and controls. Open **Library → Interactive play** to skip play creation entirely. You start on the court with your rotation already set:
 
 1. Drag the six silhouettes to your receive formation and lock it.
 2. Tap three spots on the court — where the serve lands, where the pass goes and where the ball should be set.
@@ -168,7 +172,7 @@ packages/
 | 9 · Presentation mode (PWA) | ✅ manifest, service worker, full-screen route, chapter bar |
 | 10 · Studio export | ✅ frame-by-frame WebCodecs render, background queue, upload to `/uploads` or R2 |
 | 11 · Interactive play | ✅ start-on-court quick mode, tap-to-target ball paths, block stepper, undo/redo, roster panel, save → advanced editor |
-| 12 · Volleyball suite | ✅ theme options (OLED / Midnight / Graphite), formation systems (5-1 / 6-2 / 4-2 / 6-6) with libero, quick-play role picks, custom formations, natural curved runs and camera angles, live scorecard with lineups & staff, per-player analytics, match clock + timeout countdown, home scoreboard widget |
+| 12 · Volleyball suite | ✅ theme options (OLED / Midnight / Graphite), formation systems (5-1 / 6-2 / 4-2 / 6-6) with libero, quick-play role picks, custom formations, natural curved runs and camera angles, live scorecard with lineups & staff, per-player analytics, match clock + timeout countdown, match types, print/PDF report, JSON export, home dashboard with scoreboard widget and match history |
 
 ## Author
 

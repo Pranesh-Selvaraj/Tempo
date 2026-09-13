@@ -55,6 +55,29 @@ canvas {
   touch-action: none;
 }
 
+@media print {
+  body {
+    background: #ffffff !important;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  #match-report,
+  #match-report * {
+    visibility: visible;
+  }
+
+  #match-report {
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: block !important;
+    width: 100%;
+  }
+}
+
 @layer components {
   .panel {
     @apply rounded-xl border border-white/5 bg-panel-900/90 shadow-lg shadow-black/30 backdrop-blur;
