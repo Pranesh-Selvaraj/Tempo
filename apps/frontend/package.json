@@ -29,7 +29,7 @@
     "react-router-dom": "^6.30.6",
     "superjson": "^2.2.1",
     "three": "^0.160.1",
-    "zod": "^3.25.76",
+    "zod": "^4.6.4",
     "zustand": "^4.5.7"
   },
   "devDependencies": {
