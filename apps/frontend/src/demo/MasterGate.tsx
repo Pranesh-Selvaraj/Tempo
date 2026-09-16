@@ -3,7 +3,7 @@ import { Lock } from 'lucide-react';
 import { Button, Field, PasswordInput, TextInput } from '../components/ui';
 import { BRAND_ICON } from '../lib/brand';
 import { MASTER_USER, verifyMasterCredentials } from '../lib/master';
-import { useMasterStore } from './masterStore';
+import { lastMasterUser, useMasterStore } from './masterStore';
 
 /**
  * Master credential screen for the static preview. Rendered instead of the app
@@ -11,14 +11,14 @@ import { useMasterStore } from './masterStore';
  */
 export function MasterGate() {
   const unlock = useMasterStore((state) => state.unlock);
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState(() => lastMasterUser());
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (verifyMasterCredentials(username, password)) {
-      unlock();
+      unlock(username);
     } else {
       setError('Incorrect username or password');
     }

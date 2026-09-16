@@ -13,10 +13,11 @@ export function DemoBadge() {
 
   return (
     <div className="pointer-events-none fixed bottom-3 right-3 z-[70] flex items-center gap-2 rounded-full border border-sky-400/30 bg-panel-900/90 px-3 py-1.5 text-[10px] text-slate-300 shadow-lg backdrop-blur">
-      <Lock className="h-3 w-3 text-sky-300" />
-      <span>
+      <Lock className="h-3 w-3 shrink-0 text-sky-300" />
+      <span className="hidden sm:inline">
         Private preview — saved in <span className="text-slate-100">this browser</span>
       </span>
+      <span className="sm:hidden">Preview</span>
       <button
         type="button"
         className="pointer-events-auto flex items-center gap-1 rounded-full border border-white/10 px-2 py-0.5 transition hover:border-sky-400/40 hover:text-sky-100"

@@ -118,7 +118,14 @@ export function OnboardingTour() {
         </div>
 
         {step.action && (
-          <Button onClick={() => navigate(step.action!.route)}>{step.action.label}</Button>
+          <Button
+            onClick={() => {
+              navigate(step.action!.route);
+              finish();
+            }}
+          >
+            {step.action.label}
+          </Button>
         )}
 
         <div className="flex items-center gap-1">

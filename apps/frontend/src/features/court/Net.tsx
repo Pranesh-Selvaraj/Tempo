@@ -92,7 +92,7 @@ export function Net() {
 
       {/* Antennas: 0.8 m above the net, marking the legal crossing corridor */}
       {[-1, 1].map((side) => (
-        <mesh position={[0, netHeight + 0.4, side * NET_HALF_WIDTH]}>
+        <mesh key={side} position={[0, netHeight + 0.4, side * NET_HALF_WIDTH]}>
           <cylinderGeometry args={[0.012, 0.012, 0.8, 8]} />
           <meshStandardMaterial color="#ef4444" emissive="#b91c1c" emissiveIntensity={0.4} />
         </mesh>

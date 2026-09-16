@@ -8,6 +8,7 @@ import { useAuthStore } from '../stores/authStore';
  * route changes stay unlocked.
  */
 const SESSION_KEY = 'tempo.master.session.v1';
+const USER_KEY = 'tempo.master.user.v1';
 
 function readSession(): boolean {
   try {
@@ -17,25 +18,36 @@ function readSession(): boolean {
   }
 }
 
+/** Last username entered at the gate, for prefilling the form. */
+export function lastMasterUser(): string {
+  try {
+    return localStorage.getItem(USER_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
 interface MasterState {
   unlocked: boolean;
-  unlock: () => void;
+  unlock: (username: string) => void;
   lock: () => void;
 }
 
 export const useMasterStore = create<MasterState>((set) => ({
   unlocked: readSession(),
 
-  unlock: () => {
+  unlock: (username) => {
+    const name = username.trim() || 'Master Access';
     try {
       sessionStorage.setItem(SESSION_KEY, 'unlocked');
+      localStorage.setItem(USER_KEY, name);
     } catch {
       /* storage unavailable — the session stays in memory */
     }
     useAuthStore.getState().setAuth(DEMO_TOKEN, {
       id: '00000000-0000-4000-8000-000000000000',
       email: 'master@tempo.local',
-      name: 'Master Access',
+      name,
       teamName: null,
       createdAt: new Date(),
     });

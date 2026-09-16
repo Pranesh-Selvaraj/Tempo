@@ -2,6 +2,7 @@ import {
   DEMO_STORAGE_KEY,
   DEMO_TOKEN,
 } from '../lib/mode';
+import { useStorageStatus } from './storageStatus';
 import type {
   CourtType,
   Formation,
@@ -160,16 +161,24 @@ export function readDb(): DemoDb | null {
   }
 }
 
-export function writeDb(db: DemoDb): void {
+export function writeDb(db: DemoDb): boolean {
   const store = storage();
   if (!store) {
     memoryFallback = db;
-    return;
+    return true;
   }
   try {
     store.setItem(DEMO_STORAGE_KEY, JSON.stringify(db));
+    useStorageStatus.getState().setError(null);
+    return true;
   } catch (error) {
     console.error('[demo] could not persist database', error);
+    useStorageStatus
+      .getState()
+      .setError(
+        'Browser storage is full, so the last change was not saved. Delete a play or reset the preview, then try again.',
+      );
+    return false;
   }
 }
 
@@ -183,12 +192,17 @@ export function clearDemoDb(): void {
   }
 }
 
-/** Load → change → persist in one step. */
+/** Load → change → persist in one step. Rejects if the change cannot be saved. */
 export function mutateDb<T>(fn: (db: DemoDb) => T): T {
   const db = readDb();
   if (!db) throw new Error('Demo database is not initialised');
   const result = fn(db);
-  writeDb(db);
+  if (!writeDb(db)) {
+    throw new DemoApiError(
+      'Browser storage is full — the change was not saved.',
+      'INTERNAL_SERVER_ERROR',
+    );
+  }
   return result;
 }
 

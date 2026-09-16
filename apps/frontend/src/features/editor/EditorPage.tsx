@@ -13,6 +13,7 @@ import { useRenderQueueProcessor } from '../recording/useRenderQueue';
 import { Timeline } from '../timeline/Timeline';
 import { TimelineSync } from '../timeline/TimelineSync';
 import { useRecordKeyframe } from '../timeline/useRecordKeyframe';
+import { FirstRunHints } from './FirstRunHints';
 import { LeftPanel } from './LeftPanel';
 import { RightPanel } from './RightPanel';
 import { TopBar } from './TopBar';
@@ -22,6 +23,7 @@ export function EditorPage() {
   const { playId } = useParams<{ playId: string }>();
   const [searchParams] = useSearchParams();
   const [exportOpen, setExportOpen] = useState(searchParams.get('record') === '1');
+  const [mobilePanel, setMobilePanel] = useState<'left' | 'right' | null>(null);
   const play = usePlayStore((state) => state.play);
   const loadDetail = usePlayStore((state) => state.loadDetail);
   const reset = usePlayStore((state) => state.reset);
@@ -123,10 +125,35 @@ export function EditorPage() {
     <div className={cn('flex h-full flex-col', recording && 'bg-black')}>
       <TimelineSync />
       <RenderQueueBadge />
-      {!recording && <TopBar onExport={() => setExportOpen(true)} />}
+      {!recording && (
+        <TopBar
+          onExport={() => setExportOpen(true)}
+          onOpenLeft={() => setMobilePanel('left')}
+          onOpenRight={() => setMobilePanel('right')}
+        />
+      )}
 
-      <div className="flex min-h-0 flex-1">
-        {!recording && <LeftPanel />}
+      <div className="relative flex min-h-0 flex-1">
+        {!recording && mobilePanel && (
+          <button
+            type="button"
+            aria-label="Close panel"
+            className="absolute inset-0 z-20 bg-black/60 lg:hidden"
+            onClick={() => setMobilePanel(null)}
+          />
+        )}
+        {!recording && (
+          <div
+            className={cn(
+              'shrink-0',
+              mobilePanel === 'left'
+                ? 'absolute inset-y-0 left-0 z-30 flex max-w-[85%] shadow-2xl lg:static lg:z-auto'
+                : 'hidden lg:flex',
+            )}
+          >
+            <LeftPanel />
+          </div>
+        )}
         <main className="relative flex min-w-0 flex-1 items-center justify-center overflow-hidden bg-panel-950">
           <div
             className="relative h-full"
@@ -137,6 +164,7 @@ export function EditorPage() {
             }
           >
             <Scene editing={!recording} />
+            {!recording && <FirstRunHints />}
             {recording && (
               <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-2 rounded-full border border-red-400/30 bg-black/70 px-3 py-1 text-[11px] text-red-200">
                 <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
@@ -145,7 +173,18 @@ export function EditorPage() {
             )}
           </div>
         </main>
-        {!recording && <RightPanel />}
+        {!recording && (
+          <div
+            className={cn(
+              'shrink-0',
+              mobilePanel === 'right'
+                ? 'absolute inset-y-0 right-0 z-30 flex max-w-[85%] shadow-2xl lg:static lg:z-auto'
+                : 'hidden lg:flex',
+            )}
+          >
+            <RightPanel />
+          </div>
+        )}
       </div>
 
       {!recording && <div className="h-44 shrink-0"><Timeline /></div>}
