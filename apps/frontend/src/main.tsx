@@ -6,8 +6,15 @@ import { httpBatchLink } from '@trpc/client';
 import superjson from 'superjson';
 import './styles/globals.css';
 import { App } from './App';
-import { TRPC_URL, trpc } from './lib/trpc';
+import { bootstrapDemo, demoLink } from './demo';
+import { DEMO_MODE } from './lib/mode';
+import { TRPC_URL, trpc, type AppRouter } from './lib/trpc';
 import { getStoredToken } from './stores/authStore';
+
+if (DEMO_MODE) {
+  // Seed the local database and sign in the demo coach before React mounts.
+  bootstrapDemo();
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -18,18 +25,23 @@ const queryClient = new QueryClient({
   },
 });
 
-const trpcClient = trpc.createClient({
-  transformer: superjson,
-  links: [
-    httpBatchLink({
-      url: TRPC_URL,
-      headers() {
-        const token = getStoredToken();
-        return token ? { authorization: `Bearer ${token}` } : {};
-      },
-    }),
-  ],
-});
+const trpcClient = DEMO_MODE
+  ? trpc.createClient({
+      transformer: superjson,
+      links: [demoLink<AppRouter>()],
+    })
+  : trpc.createClient({
+      transformer: superjson,
+      links: [
+        httpBatchLink({
+          url: TRPC_URL,
+          headers() {
+            const token = getStoredToken();
+            return token ? { authorization: `Bearer ${token}` } : {};
+          },
+        }),
+      ],
+    });
 
 function Root() {
   return (

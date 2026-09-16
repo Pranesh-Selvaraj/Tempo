@@ -14,6 +14,8 @@
     "dev:backend": "pnpm --filter @tempo/backend dev",
     "dev:frontend": "pnpm --filter @tempo/frontend dev",
     "build": "pnpm -r build",
+    "build:demo": "pnpm --filter @tempo/frontend build:demo",
+    "preview:demo": "pnpm build:demo && pnpm --filter @tempo/frontend preview",
     "typecheck": "pnpm -r typecheck",
     "setup": "pnpm --filter @tempo/shared-types build && pnpm --filter @tempo/frontend icons && pnpm db:setup",
     "db:generate": "pnpm --filter @tempo/backend db:generate",

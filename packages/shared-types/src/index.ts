@@ -10,4 +10,5 @@ export * from './phase';
 export * from './annotation';
 export * from './recording';
 export * from './rules';
+export * from './rulesSeed';
 export * from './interpolate';

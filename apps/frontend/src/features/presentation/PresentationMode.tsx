@@ -26,9 +26,10 @@ export function PresentationMode() {
     { id: playId ?? '' },
     { enabled: Boolean(playId), retry: 0, refetchOnWindowFocus: false },
   );
+  const authedNeeded = Boolean(playId && token) && publicQuery.isError;
   const authedQuery = trpc.play.get.useQuery(
     { id: playId ?? '' },
-    { enabled: Boolean(playId && token) && publicQuery.isError, retry: 0 },
+    { enabled: authedNeeded, retry: 0 },
   );
   const detail = publicQuery.data ?? authedQuery.data;
 
@@ -72,7 +73,7 @@ export function PresentationMode() {
   if (!detail || !play) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-slate-400">
-        {publicQuery.isLoading || authedQuery.isLoading || detail
+        {publicQuery.isLoading || (authedNeeded && authedQuery.isLoading) || detail
           ? 'Loading play…'
           : 'Play not available'}
       </div>

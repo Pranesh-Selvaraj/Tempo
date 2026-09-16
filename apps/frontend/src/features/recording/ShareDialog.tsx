@@ -3,6 +3,7 @@ import { Check, Copy, Download, Link as LinkIcon, Share2, Smartphone, UploadClou
 import { QRCodeSVG } from 'qrcode.react';
 import { trpc } from '../../lib/trpc';
 import { formatBytes, slugify } from '../../lib/format';
+import { DEMO_MODE } from '../../lib/mode';
 import { uploadRecordingFile } from '../../lib/upload';
 import { usePlayStore } from '../../stores/playStore';
 import { Button, Modal, Toggle } from '../../components/ui';
@@ -109,31 +110,43 @@ export function SharePanel({ result }: { result: RecordingResult }) {
         </Button>
       </div>
 
-      <div className="rounded-lg border border-white/5 bg-panel-950/50 p-3">
-        <p className="flex items-center gap-1.5 text-xs font-medium text-slate-200">
-          <UploadCloud className="h-3.5 w-3.5" /> Host the file
-        </p>
-        {uploadState === 'done' && uploadedUrl ? (
-          <div className="mt-2 space-y-2">
-            <p className="break-all font-mono text-[10px] text-emerald-200">{uploadedUrl}</p>
-            <Button onClick={copyUploaded}>
-              <Copy className="h-3.5 w-3.5" />
-              Copy video link
-            </Button>
-          </div>
-        ) : (
-          <div className="mt-2 flex items-center gap-2">
-            <Button onClick={upload} disabled={uploadState === 'uploading'}>
-              <UploadCloud className="h-3.5 w-3.5" />
-              {uploadState === 'uploading' ? 'Uploading…' : 'Upload for a direct video link'}
-            </Button>
-            <span className="text-[10px] text-slate-500">
-              Stores in the server&apos;s uploads folder (or R2 when configured).
-            </span>
-          </div>
-        )}
-        {uploadError && <p className="mt-1 text-[10px] text-red-300">{uploadError}</p>}
-      </div>
+      {DEMO_MODE ? (
+        <div className="rounded-lg border border-sky-400/20 bg-sky-500/5 p-3">
+          <p className="flex items-center gap-1.5 text-xs font-medium text-slate-200">
+            <UploadCloud className="h-3.5 w-3.5" /> Host the file
+          </p>
+          <p className="mt-1 text-[11px] text-slate-400">
+            The static demo has no server, so uploads are disabled. Download the video or use your
+            device&apos;s share sheet — the play link below still works.
+          </p>
+        </div>
+      ) : (
+        <div className="rounded-lg border border-white/5 bg-panel-950/50 p-3">
+          <p className="flex items-center gap-1.5 text-xs font-medium text-slate-200">
+            <UploadCloud className="h-3.5 w-3.5" /> Host the file
+          </p>
+          {uploadState === 'done' && uploadedUrl ? (
+            <div className="mt-2 space-y-2">
+              <p className="break-all font-mono text-[10px] text-emerald-200">{uploadedUrl}</p>
+              <Button onClick={copyUploaded}>
+                <Copy className="h-3.5 w-3.5" />
+                Copy video link
+              </Button>
+            </div>
+          ) : (
+            <div className="mt-2 flex items-center gap-2">
+              <Button onClick={upload} disabled={uploadState === 'uploading'}>
+                <UploadCloud className="h-3.5 w-3.5" />
+                {uploadState === 'uploading' ? 'Uploading…' : 'Upload for a direct video link'}
+              </Button>
+              <span className="text-[10px] text-slate-500">
+                Stores in the server&apos;s uploads folder (or R2 when configured).
+              </span>
+            </div>
+          )}
+          {uploadError && <p className="mt-1 text-[10px] text-red-300">{uploadError}</p>}
+        </div>
+      )}
 
       <div className="flex items-center gap-3 rounded-lg border border-white/5 bg-panel-950/50 p-3">
         <div className="rounded bg-white p-1.5">

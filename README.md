@@ -71,6 +71,8 @@ Open <http://localhost:5173>, create an account, and hit **New play**.
 | `pnpm build` | Type-checks and builds every package |
 | `pnpm typecheck` | Type-checks every package |
 | `pnpm setup` | Shared-types build, PWA icons, DB migrate + seed |
+| `pnpm build:demo` | Builds the static no-backend demo into `apps/frontend/dist` |
+| `pnpm preview:demo` | Builds and serves the static demo on <http://localhost:4173> |
 | `pnpm db:generate` | Generates Drizzle migrations from the schema |
 | `pnpm db:migrate` | Applies migrations (works on Postgres and PGlite) |
 | `pnpm db:seed` | Seeds/updates the 45 volleyball rules |
@@ -137,12 +139,51 @@ apps/
   backend/          Express + tRPC API, Drizzle schema, migrations, rules seed
   frontend/         Vite + React SPA, R3F court, editor, recorder, PWA
     public/rules/   FIVB rule book PDF + rule diagrams (SVG)
+    src/demo/       localStorage API + seed for the static VITE_DEMO_MODE build
 packages/
   shared-types/     Zod schemas, court constants, interpolation helpers
 ```
 
+## Static demo (no backend, no database)
+
+`VITE_DEMO_MODE=1` swaps the tRPC client for a localStorage-backed database and auto-signs-in a demo coach.
+The SPA deploys to any static host — Vercel, Cloudflare Pages, Netlify — with **no API and no Postgres**.
+
+```bash
+pnpm preview:demo   # build + serve at http://localhost:4173
+```
+
+What works in demo mode:
+
+| Works fully | Works locally only | Not available |
+| --- | --- | --- |
+| Interactive play (tap-to-target, save to library) | Create/edit/delete plays (browser storage) | Sharing data across devices |
+| Match scorecard, analytics, print/PDF | Keyframes, trajectories, phases, annotations, camera paths | Hosting rendered videos (download/share-sheet only) |
+| 3D editor, drill & presentation modes | Rules browser (seeded from shared-types) | User accounts beyond the local demo user |
+| Recording/render + download, PWA, QR play links | Public `/view/:id` share links | |
+
+The demo seeds three authored plays, the full rules set and a demo user. Visitors get a floating badge with a
+**Reset** button to restore the seed. All data stays in their browser; nothing is uploaded.
+
+### Deploy the demo to Vercel
+
+1. Import the repository at [vercel.com/new](https://vercel.com/new) — leave the **Root Directory** as the repo root;
+   the root `vercel.json` handles everything (pnpm workspace install, `pnpm build:demo`, SPA rewrites, COOP/COEP
+   headers for ffmpeg.wasm).
+2. Deploy. No environment variables are required.
+
+Or from the CLI:
+
+```bash
+npx vercel --prod
+```
+
+The full-stack version is unchanged: omit `VITE_DEMO_MODE` (or run `pnpm dev`) and the app talks to the Express API.
+
 ## Deployment notes
 
+- **Static demo**: set `VITE_DEMO_MODE=1` at build time (Vercel does this via `pnpm build:demo`). It replaces the API
+  with `src/demo` — a localStorage implementation of every tRPC procedure plus a seed of three plays and the rules.
 - **COOP/COEP**: ffmpeg.wasm needs `SharedArrayBuffer`, so both the API and the origin serving the SPA must send:
   `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`.
   Vite (dev + preview) and Express already do this.
