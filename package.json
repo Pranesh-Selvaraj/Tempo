@@ -4,7 +4,7 @@
   "private": true,
   "description": "3D volleyball teaching & play authoring tool",
   "author": "Pranesh Selvaraj (https://github.com/Pranesh-Selvaraj)",
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "packageManager": "pnpm@12.4.1",
   "engines": {
     "node": ">=20"

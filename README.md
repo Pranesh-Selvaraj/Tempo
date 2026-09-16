@@ -1,5 +1,7 @@
 # Tempo
 
+[![CI](https://github.com/Pranesh-Selvaraj/Tempo/actions/workflows/ci.yml/badge.svg)](https://github.com/Pranesh-Selvaraj/Tempo/actions/workflows/ci.yml)
+
 A 3D volleyball teaching tool. Author plays, choreograph cameras, record video, teach on any device.
 
 Tempo is the implementation of the **Project Rotation** blueprint: a browser-based play designer where a coach draws serve receive, attack, defense, block and transition plays on an accurate 3D court, records them as shareable video, and presents them to the team from a phone at the gym.
@@ -248,6 +250,36 @@ The full-stack version is unchanged: omit `VITE_DEMO_MODE` (or run `pnpm dev`) a
 - The official **FIVB Volleyball Rules 2025–2028** PDF is bundled under `apps/frontend/public/rules/` for offline reference. All rights to the rule book remain with the FIVB; the court diagrams are original illustrations for this project.
 - Security policy: see [SECURITY.md](./SECURITY.md).
 
+## Contributing
+
+Contributions are welcome — bug reports, feature ideas, documentation and code. Start with
+[CONTRIBUTING.md](./CONTRIBUTING.md) for the development setup, branch and commit conventions, and the
+pull request process. Everyone taking part follows the [Code of Conduct](./CODE_OF_CONDUCT.md).
+
+Security issues: report them privately following [SECURITY.md](./SECURITY.md) — never in a public issue.
+
+`main` is protected: changes land through pull requests that pass CI (`pnpm typecheck`, the full build
+and the static-preview build), with a linear history and no force pushes.
+
 ## License
 
-MIT — see [LICENSE](./LICENSE).
+Tempo is **source-available** — the code is public so you can read it, learn from it and contribute, but the product comes only from this repository.
+
+**✅ You may**
+
+- Read, study and review the source code
+- Use Tempo for free — personal, educational, internal or **commercial** use
+- Install and host unmodified copies for yourself and your organization
+- Share links to the official repository
+- Report issues and contribute improvements through this repository
+
+**❌ You may not**
+
+- Modify, adapt, translate or create derivative works from the code
+- Run or use modified, forked or derivative versions
+- Redistribute, publish, sublicense, sell, rent or offer Tempo (or a copy) as a product, service or template
+- Incorporate the code into another product
+- Remove license, copyright or attribution notices
+- Use the Tempo name or logo to brand something else
+
+Official repository and only source of the product: <https://github.com/Pranesh-Selvaraj/Tempo>. The full legal terms are in [LICENSE](./LICENSE); if this summary and the license differ, the license governs.

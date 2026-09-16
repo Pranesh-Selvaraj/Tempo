@@ -2,7 +2,7 @@
 **Role:** 3D Volleyball Teaching & Play Authoring Tool
 **Status:** Ready for Implementation (MVP)
 **Target Audience:** AI Coding Agent (Cursor, Claude, Windsurf)
-**License:** MIT
+**License:** Source-available, all rights reserved
 
 ---
 
@@ -196,7 +196,7 @@ CREATE INDEX ON phases (play_id, start_ms);
 rotation/
 ├── docker-compose.yml
 ├── .env.example
-├── LICENSE                          (MIT)
+├── LICENSE                          (source-available)
 ├── README.md
 ├── package.json                     (root, pnpm workspaces)
 ├── pnpm-workspace.yaml
@@ -776,7 +776,7 @@ React · Vite · Three.js · React Three Fiber · Node · Express · tRPC · Pos
 [pnpm commands]
 
 ## License
-MIT
+Source-available, all rights reserved
 ```
 
 ---
