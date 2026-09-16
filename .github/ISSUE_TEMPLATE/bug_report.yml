@@ -1,0 +1,52 @@
+name: Bug report
+description: Something is broken or does not behave as expected
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. For security issues please follow the
+        [security policy](https://github.com/Pranesh-Selvaraj/Tempo/security/policy)
+        instead of opening a public issue.
+  - type: dropdown
+    id: version
+    attributes:
+      label: Which version?
+      options:
+        - Static preview (the hosted, browser-only build)
+        - Full version (self-hosted with the API)
+        - Both
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open …
+        2. Click …
+        3. See …
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Device, browser and screen size
+      placeholder: e.g. iPhone 13 / Safari / 390×844, or Windows 11 / Chrome 128 / 1920×1080
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Console errors or screenshots
+      description: Paste any browser console output and attach screenshots.
+    validations:
+      required: false

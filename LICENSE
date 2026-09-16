@@ -1,21 +1,151 @@
-MIT License
+TEMPO SOURCE-AVAILABLE LICENSE
+Copyright (c) 2026 Pranesh Selvaraj. All Rights Reserved.
 
-Copyright (c) 2025 Pranesh Selvaraj
+Version 3.0 — https://github.com/Pranesh-Selvaraj/Tempo
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+PLAIN-LANGUAGE SUMMARY (CONVENIENCE ONLY — NOT PART OF THE LEGAL TERMS)
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+  You may: read the source code; use the software for free, including for
+  commercial purposes; install and host unmodified copies for yourself and
+  your company; contribute through the official repository.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+  You may not: modify the software or create derivative works; run modified,
+  forked or derivative versions; distribute, sell or offer the software as a
+  product, service or template; remove license or copyright notices; use the
+  Tempo name or logo to brand something else. (You may copy the repository to
+  prepare a contribution — see the Contributions section.)
+
+  The sections below are the license. If this summary and the sections below
+  differ, the sections below govern.
+
+This license governs the source code, documentation, designs, diagrams and all
+other materials contained in this repository (the "software").
+
+## Acceptance
+
+In order to get any license under these terms, you must agree to them as both
+strict obligations and conditions to all your licenses.
+
+## Copyright License
+
+The licensor grants you a copyright license for the software to do everything
+you might do with the software that would otherwise infringe the licensor's
+copyright in it for any permitted purpose. However, you may not make changes or
+new works based on the software, as described in the No Derivative Works
+section, and you may not distribute the software, as described in the No
+Distribution section.
+
+## Permitted Purposes
+
+Use of the software for any purpose is use for a permitted purpose, including
+personal use, educational use, and the internal business operations of you and
+your company, including commercial use. You may install and run unmodified
+copies of the software for those purposes, including on servers, for yourself
+and the people in your company.
+
+## No Derivative Works
+
+The licensor does not grant you any license to make changes or new works based
+on the software. You may not modify, adapt, translate, transform or create
+derivative works based on the software, in whole or in part, and you may not
+run or use any modified, forked or derivative version of the software.
+
+## No Distribution
+
+The licensor does not grant you any license to distribute the software. You may
+not publish, sublicense, sell, rent, lease, share or otherwise make the software
+or any copy of it available to any third party, or offer it as a product,
+service or template. The software, and any product built from it, come only
+from the official repository:
+
+https://github.com/Pranesh-Selvaraj/Tempo
+
+## Contributions
+
+The software is developed only in the official repository. Contributions are
+welcome and encouraged. By submitting any contribution (including a pull
+request, patch, suggestion or other material), you assign all right, title and
+interest in that contribution to the licensor, and agree that it becomes part
+of the software under these terms.
+
+As a limited exception to the No Derivative Works and No Distribution sections,
+you may make a copy of the repository and prepare changes to it solely for the
+purpose of submitting those changes as a contribution to the official
+repository. This exception does not permit you to use, run, deploy or
+distribute that copy or those changes for any other purpose, and it ends when
+your contribution is merged, rejected or withdrawn, after which you must delete
+your copy unless the licensor agrees otherwise in writing.
+
+## Notices
+
+You must ensure that anyone who gets a copy of any part of the software from
+you also gets a copy of these terms or the URL for them above, as well as
+copies of any plain-text lines beginning with "Required Notice:" that the
+licensor provided with the software. For example:
+
+> Required Notice: Copyright 2026 Pranesh Selvaraj
+> (https://github.com/Pranesh-Selvaraj/Tempo)
+
+## Patent License
+
+The licensor grants you a patent license for the software that covers patent
+claims the licensor can license, or becomes able to license, that you would
+infringe by using the software.
+
+## Fair Use
+
+You may have "fair use" rights for the software under the law. These terms do
+not limit them.
+
+## No Other Rights
+
+These terms do not allow you to sublicense or transfer any of your licenses to
+anyone else, or prevent the licensor from granting licenses to anyone else.
+These terms do not imply any other licenses.
+
+## Trademarks
+
+No right or license is granted to use the name "Tempo", its logo, or any other
+trademark, trade name or branding of the licensor, except to refer factually to
+this project and its official repository.
+
+## Patent Defense
+
+If you make any written claim that the software infringes or contributes to
+infringement of any patent, your patent license for the software granted under
+these terms ends immediately. If your company makes such a claim, your patent
+license ends immediately for work on behalf of your company.
+
+## Violations
+
+The first time you are notified in writing that you have violated any of these
+terms, or done anything with the software not covered by your licenses, your
+licenses can nonetheless continue if you come into full compliance with these
+terms, and take practical steps to correct past violations, within 32 days of
+receiving notice. Otherwise, all your licenses end immediately.
+
+## No Liability
+
+As far as the law allows, the software comes as is, without any warranty or
+condition, and the licensor will not be liable to you for any damages arising
+out of these terms or the use or nature of the software, under any kind of
+legal claim.
+
+## Definitions
+
+The **licensor** is the individual or entity offering these terms, and the
+**software** is the software the licensor makes available under these terms.
+
+**You** refers to the individual or entity agreeing to these terms.
+
+**Your company** is any legal entity, sole proprietorship, or other kind of
+organization that you work for, plus all organizations that have control over,
+are under the control of, or are under common control with that organization.
+**Control** means ownership of substantially all the assets of an entity, or
+the power to direct its management and policies by vote, contract, or
+otherwise. Control can be direct or indirect.
+
+**Your licenses** are all the licenses granted to you for the software under
+these terms.
+
+**Use** means anything you do with the software requiring one of your licenses.

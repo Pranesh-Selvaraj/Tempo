@@ -1,0 +1,41 @@
+name: Feature request
+description: Suggest an improvement for coaches or players
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The coaching problem
+      description: What are you trying to do that Tempo makes hard today?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Your idea
+      description: How could it work? Rough sketches or descriptions are welcome.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you have tried
+    validations:
+      required: false
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - 3D court / editor
+        - Interactive play
+        - Timeline, phases and keyframes
+        - Camera and presentation
+        - Recording and export
+        - Match scorecard
+        - Rules reference
+        - Library and sharing
+        - Other
+    validations:
+      required: true

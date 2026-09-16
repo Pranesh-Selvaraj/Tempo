@@ -43,6 +43,16 @@ branches; fixes land on `main` and are deployed from there.
   `Cross-Origin-Embedder-Policy: require-corp` (required by ffmpeg.wasm's
   `SharedArrayBuffer`) and the API enables CORS only for `FRONTEND_URL`.
 
+## Static preview build
+
+The browser-only preview (`VITE_DEMO_MODE=1`) gates the app behind a master
+username and password. That gate is **access control for a private link, not a
+security boundary**: the credentials are compiled into the public JavaScript
+bundle, and all data lives in the visitor's own browser. Do not put sensitive
+data into the static preview, and only share its URL with people you trust. For
+confidential work, use the self-hosted full version, which has real accounts and
+a database.
+
 ## Deployment checklist
 
 1. Set a long, random `JWT_SECRET` — never reuse the example value.
@@ -60,7 +70,7 @@ branches; fixes land on `main` and are deployed from there.
 The **FIVB Volleyball Rules 2025–2028** PDF bundled in
 `apps/frontend/public/rules/` is the property of the FIVB and is included only
 as a reference copy for users of this app. Court diagrams in the same folder are
-original illustrations released with this project under the MIT license.
+original illustrations published with this project under its source-available license.
 
 ## Out of scope
 
