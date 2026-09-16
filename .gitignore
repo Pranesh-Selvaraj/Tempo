@@ -23,3 +23,7 @@ apps/backend/uploads/*
 apps/frontend/public/models/*.glb
 apps/frontend/public/models/*.fbx
 !apps/frontend/public/models/.gitkeep
+
+# Vercel local project link
+.vercel
+.env*
