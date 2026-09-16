@@ -5,7 +5,7 @@
       <stop offset="100%" stop-color="#2563eb" />
     </linearGradient>
     <clipPath id="tempo-ball">
-      <circle cx="288" cy="256" r="126" />
+      <circle cx="282" cy="256" r="133" />
     </clipPath>
   </defs>
   <rect width="512" height="512" rx="120" fill="url(#tempo-bg)" />
@@ -14,10 +14,10 @@
     <rect x="30" y="245" width="102" height="22" rx="11" opacity="0.85" />
     <rect x="52" y="320" width="80" height="22" rx="11" opacity="0.5" />
   </g>
-  <circle cx="288" cy="256" r="126" fill="#ffffff" />
-  <g clip-path="url(#tempo-ball)" fill="none" stroke="#1e3a8a" stroke-width="18" stroke-linecap="round">
-    <circle cx="130" cy="430" r="250" />
-    <circle cx="430" cy="60" r="210" />
-    <circle cx="480" cy="330" r="215" />
+  <circle cx="282" cy="256" r="133" fill="#ffffff" />
+  <g clip-path="url(#tempo-ball)" fill="none" stroke="#1e3a8a" stroke-width="21" stroke-linecap="round">
+    <path d="M184 143 Q169 266 256 384" />
+    <path d="M205 133 Q297 205 369 369" />
+    <path d="M225 128 Q399 184 420 282" />
   </g>
 </svg>

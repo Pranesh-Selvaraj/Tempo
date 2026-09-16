@@ -69,6 +69,44 @@ function roundedRect(u, v, cx, cy, width, height, radius) {
   return Math.hypot(ox, oy) + Math.min(Math.max(dx, dy), 0) <= radius;
 }
 
+/** Volleyball panel seams, as quadratic Bézier curves in unit coordinates. */
+const SEAMS = [
+  [[0.36, 0.28], [0.33, 0.52], [0.5, 0.75]],
+  [[0.4, 0.26], [0.58, 0.4], [0.72, 0.72]],
+  [[0.44, 0.25], [0.78, 0.36], [0.82, 0.55]],
+];
+
+function quadraticPoint(curve, t) {
+  const mt = 1 - t;
+  return [
+    mt * mt * curve[0][0] + 2 * mt * t * curve[1][0] + t * t * curve[2][0],
+    mt * mt * curve[0][1] + 2 * mt * t * curve[1][1] + t * t * curve[2][1],
+  ];
+}
+
+function segmentDistance(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const lengthSq = dx * dx + dy * dy;
+  let t = lengthSq ? ((px - x1) * dx + (py - y1) * dy) / lengthSq : 0;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+}
+
+function seamDistance(px, py, curve) {
+  let closest = Number.POSITIVE_INFINITY;
+  let previous = quadraticPoint(curve, 0);
+  for (let step = 1; step <= 24; step += 1) {
+    const point = quadraticPoint(curve, step / 24);
+    closest = Math.min(
+      closest,
+      segmentDistance(px, py, previous[0], previous[1], point[0], point[1]),
+    );
+    previous = point;
+  }
+  return closest;
+}
+
 function shade(u, v, scale) {
   // Keep content inside the maskable safe zone by shrinking toward the centre.
   const su = 0.5 + (u - 0.5) / scale;
@@ -101,19 +139,14 @@ function shade(u, v, scale) {
   }
 
   // White volleyball with navy panel seams, clipped to the ball.
-  const dx = su - 0.5625;
+  const dx = su - 0.55;
   const dy = sv - 0.5;
-  if (Math.hypot(dx, dy) <= 0.246) {
+  if (Math.hypot(dx, dy) <= 0.26) {
     color[0] = 255;
     color[1] = 255;
     color[2] = 255;
-    const seams = [
-      [0.254, 0.84, 0.488],
-      [0.84, 0.117, 0.41],
-      [0.9375, 0.645, 0.42],
-    ];
-    for (const [cx, cy, radius] of seams) {
-      if (Math.abs(Math.hypot(su - cx, sv - cy) - radius) < 0.018) {
+    for (const seam of SEAMS) {
+      if (seamDistance(su, sv, seam) < 0.0205) {
         color[0] = 30;
         color[1] = 58;
         color[2] = 138;

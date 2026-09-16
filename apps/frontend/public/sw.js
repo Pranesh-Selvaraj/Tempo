@@ -1,13 +1,13 @@
 /* Tempo service worker — app-shell caching so the gym presentation works on flaky wifi. */
-const CACHE = 'tempo-shell-v1';
+const CACHE = 'tempo-shell-v2';
 const SHELL = [
   '/',
   '/index.html',
   '/manifest.webmanifest',
-  '/icon.svg',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
-  '/icons/apple-touch-icon-180.png',
+  '/icon.svg?v=2',
+  '/icons/icon-192.png?v=2',
+  '/icons/icon-512.png?v=2',
+  '/icons/apple-touch-icon-180.png?v=2',
 ];
 
 self.addEventListener('install', (event) => {

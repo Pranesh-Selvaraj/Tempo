@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Loader2, Volleyball } from 'lucide-react';
 import { trpc } from '../../lib/trpc';
 import { useAuthStore } from '../../stores/authStore';
-import { Button, Field, Panel, TextInput } from '../../components/ui';
+import { Button, Field, Panel, PasswordInput, TextInput } from '../../components/ui';
 
 export function AuthPage() {
   const [mode, setMode] = useState<'login' | 'register'>('login');
@@ -83,8 +83,7 @@ export function AuthPage() {
               />
             </Field>
             <Field label="Password" hint={mode === 'register' ? 'At least 8 characters' : undefined}>
-              <TextInput
-                type="password"
+              <PasswordInput
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder="••••••••"

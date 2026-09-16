@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BookOpen, CircleHelp, ClipboardList, LogOut, MousePointerClick, Plus, Search, Volleyball } from 'lucide-react';
+import { BookOpen, CircleHelp, ClipboardList, LogOut, MousePointerClick, Plus, Search } from 'lucide-react';
 import {
   COURT_TYPES,
   FORMATION_INFO,
@@ -13,6 +13,7 @@ import {
   type PlayCategory,
 } from '@tempo/shared-types';
 import { cn } from '../../lib/cn';
+import { BRAND_ICON } from '../../lib/brand';
 import { DEMO_MODE } from '../../lib/mode';
 import { trpc } from '../../lib/trpc';
 import type { Play } from '../../lib/trpc';
@@ -210,15 +211,15 @@ export function PlayLibrary() {
   return (
     <div className="scroll-thin h-full overflow-y-auto">
       <header className="flex items-center gap-3 border-b border-white/5 bg-panel-900/80 px-5 py-3">
-        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500/15 text-sky-300">
-          <Volleyball className="h-5 w-5" />
-        </span>
-        <div>
-          <h1 className="text-sm font-bold">Tempo</h1>
-          <p className="text-[10px] text-slate-500">
-            3D volleyball play designer · built by Pranesh Selvaraj
-          </p>
-        </div>
+        <Link to="/" className="flex items-center gap-3" title="Go to your play library">
+          <img src={BRAND_ICON} alt="Tempo" className="h-9 w-9 rounded-xl" />
+          <div>
+            <h1 className="text-sm font-bold">Tempo</h1>
+            <p className="text-[10px] text-slate-500">
+              3D volleyball play designer · built by Pranesh Selvaraj
+            </p>
+          </div>
+        </Link>
         <div className="ml-auto flex items-center gap-2">
           <Link to="/scorecard" className="btn">
             <ClipboardList className="h-3.5 w-3.5" />

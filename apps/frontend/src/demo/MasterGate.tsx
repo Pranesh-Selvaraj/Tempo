@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
-import { Lock, Volleyball } from 'lucide-react';
-import { Button, Field, TextInput } from '../components/ui';
+import { Lock } from 'lucide-react';
+import { Button, Field, PasswordInput, TextInput } from '../components/ui';
+import { BRAND_ICON } from '../lib/brand';
 import { MASTER_USER, verifyMasterCredentials } from '../lib/master';
 import { useMasterStore } from './masterStore';
 
@@ -34,9 +35,7 @@ export function MasterGate() {
       <div className="pointer-events-none absolute -top-40 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-sky-500/10 blur-3xl" />
       <form onSubmit={submit} className="panel relative w-full max-w-sm space-y-4 p-6">
         <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/15 text-sky-300">
-            <Volleyball className="h-5 w-5" />
-          </span>
+          <img src={BRAND_ICON} alt="Tempo" className="h-11 w-11 rounded-xl" />
           <div>
             <h1 className="text-base font-bold text-slate-100">Tempo</h1>
             <p className="text-[11px] text-slate-500">
@@ -55,8 +54,7 @@ export function MasterGate() {
           />
         </Field>
         <Field label="Password">
-          <TextInput
-            type="password"
+          <PasswordInput
             value={password}
             autoComplete="current-password"
             onChange={(event) => setPassword(event.target.value)}
