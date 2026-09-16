@@ -1,10 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Tempo">
-  <rect width="512" height="512" rx="96" fill="#0b1120"/>
-  <rect x="51" y="166" width="410" height="180" rx="20" fill="#c98b4b"/>
-  <rect x="249" y="166" width="14" height="180" fill="#f8fafc"/>
-  <rect x="180" y="166" width="6" height="180" fill="#f8fafc" opacity="0.75"/>
-  <rect x="326" y="166" width="6" height="180" fill="#f8fafc" opacity="0.75"/>
-  <circle cx="368" cy="120" r="52" fill="#f8fafc"/>
-  <path d="M326 132 Q368 92 410 132" fill="none" stroke="#2563eb" stroke-width="12" stroke-linecap="round"/>
-  <path d="M356 74 Q386 120 356 166" fill="none" stroke="#facc15" stroke-width="12" stroke-linecap="round"/>
+  <defs>
+    <linearGradient id="tempo-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#2563eb" />
+    </linearGradient>
+    <clipPath id="tempo-ball">
+      <circle cx="288" cy="256" r="126" />
+    </clipPath>
+  </defs>
+  <rect width="512" height="512" rx="120" fill="url(#tempo-bg)" />
+  <g fill="#ffffff">
+    <rect x="46" y="170" width="86" height="22" rx="11" opacity="0.5" />
+    <rect x="30" y="245" width="102" height="22" rx="11" opacity="0.85" />
+    <rect x="52" y="320" width="80" height="22" rx="11" opacity="0.5" />
+  </g>
+  <circle cx="288" cy="256" r="126" fill="#ffffff" />
+  <g clip-path="url(#tempo-ball)" fill="none" stroke="#1e3a8a" stroke-width="18" stroke-linecap="round">
+    <circle cx="130" cy="430" r="250" />
+    <circle cx="430" cy="60" r="210" />
+    <circle cx="480" cy="330" r="215" />
+  </g>
 </svg>

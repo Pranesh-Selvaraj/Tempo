@@ -74,21 +74,52 @@ function shade(u, v, scale) {
   const su = 0.5 + (u - 0.5) / scale;
   const sv = 0.5 + (v - 0.5) / scale;
 
-  let color = [11, 17, 32, 255];
+  // Sky-to-blue tile background.
+  const t = Math.min(1, Math.max(0, (su + sv) / 2));
+  const color = [
+    Math.round(56 + (37 - 56) * t),
+    Math.round(189 + (99 - 189) * t),
+    Math.round(248 + (235 - 248) * t),
+  ];
 
-  if (roundedRect(su, sv, 0.5, 0.5, 0.8, 0.36, 0.055)) {
-    color = [201, 139, 75, 255];
-    if (Math.abs(su - 0.5) < 0.012) color = [248, 250, 252, 255];
-    if (Math.abs(su - 0.37) < 0.009 || Math.abs(su - 0.63) < 0.009) color = [248, 250, 252, 255];
+  const blend = (target, alpha) => {
+    color[0] = Math.round(color[0] + (target[0] - color[0]) * alpha);
+    color[1] = Math.round(color[1] + (target[1] - color[1]) * alpha);
+    color[2] = Math.round(color[2] + (target[2] - color[2]) * alpha);
+  };
+
+  // Motion lines behind the ball.
+  const motionLines = [
+    [0.09, 0.332, 0.168, 0.043, 0.5],
+    [0.059, 0.479, 0.199, 0.043, 0.85],
+    [0.102, 0.625, 0.156, 0.043, 0.5],
+  ];
+  for (const [x, y, width, height, alpha] of motionLines) {
+    if (roundedRect(su, sv, x + width / 2, y + height / 2, width, height, height / 2)) {
+      blend([255, 255, 255], alpha);
+    }
   }
 
-  const dx = su - 0.7;
-  const dy = sv - 0.24;
-  if (dx * dx + dy * dy < 0.1 * 0.1) {
-    color = [248, 250, 252, 255];
-    if (Math.abs(dy + 0.55 * dx) < 0.018) color = [37, 99, 235, 255];
-    if (Math.abs(dy - 0.55 * dx) < 0.018) color = [37, 99, 235, 255];
-    if (Math.abs(dx) < 0.016) color = [250, 204, 21, 255];
+  // White volleyball with navy panel seams, clipped to the ball.
+  const dx = su - 0.5625;
+  const dy = sv - 0.5;
+  if (Math.hypot(dx, dy) <= 0.246) {
+    color[0] = 255;
+    color[1] = 255;
+    color[2] = 255;
+    const seams = [
+      [0.254, 0.84, 0.488],
+      [0.84, 0.117, 0.41],
+      [0.9375, 0.645, 0.42],
+    ];
+    for (const [cx, cy, radius] of seams) {
+      if (Math.abs(Math.hypot(su - cx, sv - cy) - radius) < 0.018) {
+        color[0] = 30;
+        color[1] = 58;
+        color[2] = 138;
+        break;
+      }
+    }
   }
 
   return color;

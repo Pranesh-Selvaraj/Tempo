@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BookOpen, ClipboardList, LogOut, MousePointerClick, Plus, Search, Volleyball } from 'lucide-react';
+import { BookOpen, CircleHelp, ClipboardList, LogOut, MousePointerClick, Plus, Search, Volleyball } from 'lucide-react';
 import {
   COURT_TYPES,
   FORMATION_INFO,
@@ -13,9 +13,12 @@ import {
   type PlayCategory,
 } from '@tempo/shared-types';
 import { cn } from '../../lib/cn';
+import { DEMO_MODE } from '../../lib/mode';
 import { trpc } from '../../lib/trpc';
 import type { Play } from '../../lib/trpc';
 import { useAuthStore } from '../../stores/authStore';
+import { useMasterStore } from '../../demo/masterStore';
+import { useTourStore } from '../../demo/tourStore';
 import { ThemeSwitcher } from '../../components/ThemeSwitcher';
 import { Button, Field, Modal, NumberInput, Panel, Select, TextInput } from '../../components/ui';
 import { MatchHistoryPanel } from '../scorecard/MatchHistoryPanel';
@@ -193,6 +196,8 @@ export function PlayLibrary() {
   const [newOpen, setNewOpen] = useState(false);
   const user = useAuthStore((state) => state.user);
   const clear = useAuthStore((state) => state.clear);
+  const lockMaster = useMasterStore((state) => state.lock);
+  const startTour = useTourStore((state) => state.start);
 
   const list = trpc.play.list.useQuery(category === 'all' ? {} : { category });
   const plays = list.data ?? [];
@@ -226,8 +231,17 @@ export function PlayLibrary() {
           <span className="hidden text-xs text-slate-400 sm:block">
             {user?.name ?? user?.email}
           </span>
+          {DEMO_MODE && (
+            <Button variant="ghost" onClick={startTour} title="How Tempo works">
+              <CircleHelp className="h-3.5 w-3.5" />
+            </Button>
+          )}
           <ThemeSwitcher compact />
-          <Button variant="ghost" onClick={clear} title="Sign out">
+          <Button
+            variant="ghost"
+            onClick={() => (DEMO_MODE ? lockMaster() : clear())}
+            title={DEMO_MODE ? 'Lock preview' : 'Sign out'}
+          >
             <LogOut className="h-3.5 w-3.5" />
           </Button>
           <Link to="/interactive" className="btn btn-primary">

@@ -144,37 +144,62 @@ packages/
   shared-types/     Zod schemas, court constants, interpolation helpers
 ```
 
-## Static demo (no backend, no database)
+## Static preview (no backend, no database)
 
-`VITE_DEMO_MODE=1` swaps the tRPC client for a localStorage-backed database and auto-signs-in a demo coach.
-The SPA deploys to any static host — Vercel, Cloudflare Pages, Netlify — with **no API and no Postgres**.
+`VITE_DEMO_MODE=1` swaps the tRPC client for a localStorage database, gates the app behind master
+credentials and starts from a clean workspace. The SPA deploys to any static host — Vercel, Cloudflare
+Pages, Netlify — with **no API and no Postgres**.
 
 ```bash
 pnpm preview:demo   # build + serve at http://localhost:4173
 ```
 
-What works in demo mode:
+### Master access
 
-| Works fully | Works locally only | Not available |
+The preview is private: nothing renders until the master username and password are entered, and the
+unlock lasts for the browser session (a new session asks again). Set the credentials at build time:
+
+```bash
+# Generate a hash instead of shipping the plaintext:
+pnpm --filter @tempo/frontend hash-password "your strong password"
+
+VITE_MASTER_USER=coach \
+VITE_MASTER_PASSWORD_SHA256=<printed hash> \
+VITE_DEMO_MODE=1 pnpm build:demo
+```
+
+`VITE_MASTER_PASSWORD` (plaintext) is also supported, but the hash is recommended. Without either
+variable the build falls back to `master` / `tempo-preview` so local development works — **always set
+them before sharing a URL**. This is access control for a private link, not real security: a static
+bundle can be inspected, so use a strong password.
+
+### What visitors get
+
+- A short **onboarding tour** on first unlock, replayable from the `?` button in the library header.
+- A **clean workspace** — no example plays. The built-in rules reference ships with it.
+- Everything saved in the browser; the floating badge has a **Reset** button (with confirmation).
+
+| Works fully | Saved in this browser | Not available |
 | --- | --- | --- |
-| Interactive play (tap-to-target, save to library) | Create/edit/delete plays (browser storage) | Sharing data across devices |
+| Interactive play (tap-to-target, save to library) | Create/edit/delete plays | Sharing data across devices |
 | Match scorecard, analytics, print/PDF | Keyframes, trajectories, phases, annotations, camera paths | Hosting rendered videos (download/share-sheet only) |
-| 3D editor, drill & presentation modes | Rules browser (seeded from shared-types) | User accounts beyond the local demo user |
-| Recording/render + download, PWA, QR play links | Public `/view/:id` share links | |
+| 3D editor, drill & presentation modes | Rules browser | Real accounts (one master login) |
+| Recording/render + download, PWA, QR play links | Public `/view/:id` share links (same browser) | |
 
-The demo seeds three authored plays, the full rules set and a demo user. Visitors get a floating badge with a
-**Reset** button to restore the seed. All data stays in their browser; nothing is uploaded.
-
-### Deploy the demo to Vercel
+### Deploy the preview to Vercel
 
 1. Import the repository at [vercel.com/new](https://vercel.com/new) — leave the **Root Directory** as the repo root;
    the root `vercel.json` handles everything (pnpm workspace install, `pnpm build:demo`, SPA rewrites, COOP/COEP
    headers for ffmpeg.wasm).
-2. Deploy. No environment variables are required.
+2. Under **Settings → Environment Variables**, add `VITE_MASTER_USER` and `VITE_MASTER_PASSWORD_SHA256`
+   (Production, and Preview if you want preview URLs gated too).
+3. Deploy or redeploy — build-time variables only apply to new builds.
 
-Or from the CLI:
+Or from the CLI (the project is already linked):
 
 ```bash
+printf 'your-user\n' | npx vercel env add VITE_MASTER_USER production
+printf '<hash>\n'   | npx vercel env add VITE_MASTER_PASSWORD_SHA256 production
 npx vercel --prod
 ```
 
@@ -182,8 +207,9 @@ The full-stack version is unchanged: omit `VITE_DEMO_MODE` (or run `pnpm dev`) a
 
 ## Deployment notes
 
-- **Static demo**: set `VITE_DEMO_MODE=1` at build time (Vercel does this via `pnpm build:demo`). It replaces the API
-  with `src/demo` — a localStorage implementation of every tRPC procedure plus a seed of three plays and the rules.
+- **Static preview**: set `VITE_DEMO_MODE=1` at build time (Vercel does this via `pnpm build:demo`). It replaces the
+  API with `src/demo` — a localStorage implementation of every tRPC procedure — gates the app behind the master
+  credentials in `VITE_MASTER_USER` / `VITE_MASTER_PASSWORD_SHA256`, and starts from a clean workspace.
 - **COOP/COEP**: ffmpeg.wasm needs `SharedArrayBuffer`, so both the API and the origin serving the SPA must send:
   `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`.
   Vite (dev + preview) and Express already do this.

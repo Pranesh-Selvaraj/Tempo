@@ -114,7 +114,7 @@ export interface DemoRuleRow {
 }
 
 export interface DemoDb {
-  version: 1;
+  version: 2;
   users: DemoUserRow[];
   plays: DemoPlayRow[];
   keyframes: DemoKeyframeRow[];
@@ -153,7 +153,7 @@ export function readDb(): DemoDb | null {
     const raw = store.getItem(DEMO_STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as DemoDb;
-    if (!parsed || parsed.version !== 1) return null;
+    if (!parsed || parsed.version !== 2) return null;
     return parsed;
   } catch {
     return null;

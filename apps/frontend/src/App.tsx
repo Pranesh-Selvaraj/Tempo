@@ -1,5 +1,8 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { DemoBadge } from './components/DemoBadge';
+import { MasterGate } from './demo/MasterGate';
+import { useMasterStore } from './demo/masterStore';
+import { OnboardingTour } from './demo/OnboardingTour';
 import { DEMO_MODE } from './lib/mode';
 import { useAuthStore } from './stores/authStore';
 import { AuthPage } from './features/auth/AuthPage';
@@ -21,6 +24,12 @@ function RequireAuth({ children }: { children: JSX.Element }) {
 }
 
 export function App() {
+  const unlocked = useMasterStore((state) => state.unlocked);
+
+  // The static preview is gated behind the master credentials before any
+  // route (including viewer links) renders.
+  if (DEMO_MODE && !unlocked) return <MasterGate />;
+
   return (
     <div className="h-dvh w-screen overflow-hidden bg-panel-950 font-sans text-slate-100">
       <Routes>
@@ -63,6 +72,7 @@ export function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <DemoBadge />
+      <OnboardingTour />
     </div>
   );
 }

@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "build:demo": "pnpm --filter @tempo/shared-types build && tsc --noEmit && VITE_DEMO_MODE=1 vite build",
+    "hash-password": "node scripts/hash-password.mjs",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "icons": "node scripts/make-icons.mjs"

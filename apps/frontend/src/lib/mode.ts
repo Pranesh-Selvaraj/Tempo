@@ -10,5 +10,5 @@
 export const DEMO_MODE =
   import.meta.env.VITE_DEMO_MODE === '1' || import.meta.env.VITE_DEMO_MODE === 'true';
 
-export const DEMO_STORAGE_KEY = 'tempo.demo.db.v1';
+export const DEMO_STORAGE_KEY = 'tempo.demo.db.v2';
 export const DEMO_TOKEN = 'demo-mode-token';
