@@ -160,18 +160,16 @@ The preview is private: nothing renders until the master username and password a
 unlock lasts for the browser session (a new session asks again). Set the credentials at build time:
 
 ```bash
-# Generate a hash instead of shipping the plaintext:
-pnpm --filter @tempo/frontend hash-password "your strong password"
-
 VITE_MASTER_USER=coach \
-VITE_MASTER_PASSWORD_SHA256=<printed hash> \
+VITE_MASTER_PASSWORD=your-password \
 VITE_DEMO_MODE=1 pnpm build:demo
 ```
 
-`VITE_MASTER_PASSWORD` (plaintext) is also supported, but the hash is recommended. Without either
-variable the build falls back to `master` / `tempo-preview` so local development works — **always set
-them before sharing a URL**. This is access control for a private link, not real security: a static
-bundle can be inspected, so use a strong password.
+On Vercel, set `VITE_MASTER_USER` and `VITE_MASTER_PASSWORD` under **Settings → Environment
+Variables**, then hit **Redeploy** — changing the password is just editing one variable and redeploying.
+Without these variables the build falls back to `master` / `tempo-preview` so local development works
+— **always set them before sharing a URL**. This is access control for a private link, not real
+security: a static bundle can be inspected, so use a strong password.
 
 ### What visitors get
 
@@ -191,15 +189,16 @@ bundle can be inspected, so use a strong password.
 1. Import the repository at [vercel.com/new](https://vercel.com/new) — leave the **Root Directory** as the repo root;
    the root `vercel.json` handles everything (pnpm workspace install, `pnpm build:demo`, SPA rewrites, COOP/COEP
    headers for ffmpeg.wasm).
-2. Under **Settings → Environment Variables**, add `VITE_MASTER_USER` and `VITE_MASTER_PASSWORD_SHA256`
+2. Under **Settings → Environment Variables**, add `VITE_MASTER_USER` and `VITE_MASTER_PASSWORD`
    (Production, and Preview if you want preview URLs gated too).
-3. Deploy or redeploy — build-time variables only apply to new builds.
+3. Deploy or redeploy — build-time variables only apply to new builds. To change the password later, edit the
+   variable and redeploy (Deployments → newest → Redeploy).
 
 Or from the CLI (the project is already linked):
 
 ```bash
-printf 'your-user\n' | npx vercel env add VITE_MASTER_USER production
-printf '<hash>\n'   | npx vercel env add VITE_MASTER_PASSWORD_SHA256 production
+printf 'your-user\n'     | npx vercel env add VITE_MASTER_USER production
+printf 'your-password\n' | npx vercel env add VITE_MASTER_PASSWORD production --type config
 npx vercel --prod
 ```
 
@@ -209,7 +208,7 @@ The full-stack version is unchanged: omit `VITE_DEMO_MODE` (or run `pnpm dev`) a
 
 - **Static preview**: set `VITE_DEMO_MODE=1` at build time (Vercel does this via `pnpm build:demo`). It replaces the
   API with `src/demo` — a localStorage implementation of every tRPC procedure — gates the app behind the master
-  credentials in `VITE_MASTER_USER` / `VITE_MASTER_PASSWORD_SHA256`, and starts from a clean workspace.
+  credentials in `VITE_MASTER_USER` / `VITE_MASTER_PASSWORD`, and starts from a clean workspace.
 - **COOP/COEP**: ffmpeg.wasm needs `SharedArrayBuffer`, so both the API and the origin serving the SPA must send:
   `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`.
   Vite (dev + preview) and Express already do this.

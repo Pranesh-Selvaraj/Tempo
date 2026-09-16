@@ -14,19 +14,13 @@ export function MasterGate() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
 
-  const submit = async (event: FormEvent) => {
+  const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (busy) return;
-    setBusy(true);
-    setError(null);
-    const ok = await verifyMasterCredentials(username, password);
-    if (ok) {
+    if (verifyMasterCredentials(username, password)) {
       unlock();
     } else {
       setError('Incorrect username or password');
-      setBusy(false);
     }
   };
 
@@ -67,10 +61,10 @@ export function MasterGate() {
           type="submit"
           variant="primary"
           className="w-full justify-center"
-          disabled={busy || !username || !password}
+          disabled={!username || !password}
         >
           <Lock className="h-3.5 w-3.5" />
-          {busy ? 'Checking…' : 'Unlock'}
+          Unlock
         </Button>
 
         <p className="text-center text-[10px] text-slate-600">
