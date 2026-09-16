@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   ArrowLeft,
   ArrowLeftRight,
+  MoreVertical,
   Download,
   Pause,
   Play,
@@ -26,6 +27,7 @@ import {
 } from '@tempo/shared-types';
 import { MatchReport } from './MatchReport';
 import { cn } from '../../lib/cn';
+import { Dropdown, menuItemClass } from '../../components/Dropdown';
 import { ThemeSwitcher } from '../../components/ThemeSwitcher';
 import {
   Button,
@@ -1166,17 +1168,19 @@ export function ScorecardPage() {
 
   return (
     <div className="scroll-thin h-full overflow-y-auto bg-panel-950">
-      <header className="sticky top-0 z-20 flex flex-wrap items-center gap-2 border-b border-white/5 bg-panel-900/90 px-5 py-3 backdrop-blur">
+      <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-white/5 bg-panel-900/90 px-3 py-3 backdrop-blur sm:px-5">
         <Link to="/" className="btn btn-ghost">
           <ArrowLeft className="h-4 w-4" />
         </Link>
-        <div>
+        <div className="min-w-0">
           <h1 className="text-sm font-bold text-slate-100">Match scorecard</h1>
-          <p className="text-[10px] text-slate-500">
+          <p className="hidden text-[10px] text-slate-500 sm:block">
             Rally scoring · rotation tracking · timeouts and substitutions
           </p>
         </div>
-        <div className="ml-auto flex items-center gap-2">
+
+        {/* Desktop actions */}
+        <div className="ml-auto hidden items-center gap-2 sm:flex">
           <Button onClick={() => window.print()} title="Print or save as PDF">
             <Printer className="h-3.5 w-3.5" />
             Print / PDF
@@ -1201,6 +1205,71 @@ export function ScorecardPage() {
             Reset match
           </Button>
           <ThemeSwitcher compact />
+        </div>
+
+        {/* Phone actions */}
+        <div className="ml-auto flex items-center gap-2 sm:hidden">
+          <Button onClick={undo} disabled={match.events.length === 0} title="Undo last point">
+            <Undo2 className="h-3.5 w-3.5" />
+            Undo
+          </Button>
+          <Button onClick={finishSet} disabled={Boolean(match.winner)}>
+            Finish set
+          </Button>
+          <Dropdown label="More actions" button={<MoreVertical className="h-4 w-4" />}>
+            {(close) => (
+              <>
+                <button
+                  type="button"
+                  className={menuItemClass}
+                  onClick={() => {
+                    close();
+                    window.print();
+                  }}
+                >
+                  <Printer className="h-3.5 w-3.5" />
+                  Print / PDF
+                </button>
+                <button
+                  type="button"
+                  className={menuItemClass}
+                  onClick={() => {
+                    close();
+                    exportJson();
+                  }}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Export data
+                </button>
+                <button
+                  type="button"
+                  className={menuItemClass}
+                  onClick={() => {
+                    close();
+                    setRosterOpen(true);
+                  }}
+                >
+                  <Users className="h-3.5 w-3.5" />
+                  Lineups &amp; staff
+                </button>
+                <button
+                  type="button"
+                  className={menuItemClass}
+                  onClick={() => {
+                    close();
+                    reset();
+                  }}
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Reset match
+                </button>
+                <div className="my-1 border-t border-white/5" />
+                <div className="px-1 py-1">
+                  <ThemeSwitcher compact />
+                </div>
+              </>
+            )}
+          </Dropdown>
         </div>
       </header>
 

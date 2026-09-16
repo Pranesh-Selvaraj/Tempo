@@ -1,6 +1,17 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BookOpen, CircleHelp, ClipboardList, LogOut, MousePointerClick, Plus, Search } from 'lucide-react';
+import {
+  BookOpen,
+  CircleHelp,
+  ClipboardList,
+  Info,
+  LogOut,
+  Menu as MenuIcon,
+  MousePointerClick,
+  Plus,
+  Search,
+  Volleyball,
+} from 'lucide-react';
 import {
   COURT_TYPES,
   FORMATION_INFO,
@@ -20,6 +31,8 @@ import type { Play } from '../../lib/trpc';
 import { useAuthStore } from '../../stores/authStore';
 import { useMasterStore } from '../../demo/masterStore';
 import { useTourStore } from '../../demo/tourStore';
+import { AboutDialog } from '../../components/AboutDialog';
+import { Dropdown, menuItemClass } from '../../components/Dropdown';
 import { ThemeSwitcher } from '../../components/ThemeSwitcher';
 import { Button, Field, Modal, NumberInput, Panel, Select, TextInput } from '../../components/ui';
 import { MatchHistoryPanel } from '../scorecard/MatchHistoryPanel';
@@ -180,6 +193,11 @@ function NewPlayDialog({ open, onClose }: { open: boolean; onClose: () => void }
             </button>
           ))}
         </div>
+        {create.error && (
+          <p className="rounded-lg border border-red-400/30 bg-red-500/10 p-2 text-[11px] text-red-200">
+            {create.error.message}
+          </p>
+        )}
         <div className="flex justify-end gap-2 pt-1">
           <Button onClick={onClose}>Cancel</Button>
           <Button type="submit" variant="primary" disabled={create.isLoading || !name.trim()}>
@@ -191,10 +209,66 @@ function NewPlayDialog({ open, onClose }: { open: boolean; onClose: () => void }
   );
 }
 
+function WelcomePanel({ onNew, onTour }: { onNew: () => void; onTour: () => void }) {
+  return (
+    <section className="panel relative overflow-hidden">
+      <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-sky-500/10 blur-3xl" />
+      <div className="relative p-5 sm:p-6">
+        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-500/15 text-sky-300">
+          <Volleyball className="h-5 w-5" />
+        </span>
+        <h2 className="mt-4 text-lg font-bold text-slate-100">Build your first play</h2>
+        <p className="mt-1 max-w-lg text-xs leading-relaxed text-slate-400">
+          Place your six on a real court, tap where the ball travels, then save the run as a play
+          your team can replay, present and record. Everything stays in this browser.
+        </p>
+        <div className="mt-5 flex flex-wrap gap-2">
+          <Button variant="primary" onClick={onNew}>
+            <Plus className="h-3.5 w-3.5" />
+            New play
+          </Button>
+          <Link to="/interactive" className="btn">
+            <MousePointerClick className="h-3.5 w-3.5" />
+            Start interactive play
+          </Link>
+          {DEMO_MODE && (
+            <Button variant="ghost" onClick={onTour}>
+              <CircleHelp className="h-3.5 w-3.5" />
+              How Tempo works
+            </Button>
+          )}
+        </div>
+        <ul className="mt-6 grid gap-2 sm:grid-cols-3">
+          {[
+            {
+              title: 'Tap to author',
+              body: 'Tap the court to build the serve, pass, set and attack in seconds.',
+            },
+            {
+              title: 'Coach it',
+              body: 'Add phases, notes and camera moves on the timeline.',
+            },
+            {
+              title: 'Share it',
+              body: 'Present full-screen, send a link, or record a video.',
+            },
+          ].map((item) => (
+            <li key={item.title} className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
+              <p className="text-[11px] font-semibold text-slate-200">{item.title}</p>
+              <p className="mt-1 text-[11px] leading-relaxed text-slate-500">{item.body}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
 export function PlayLibrary() {
   const [category, setCategory] = useState<PlayCategory | 'all'>('all');
   const [query, setQuery] = useState('');
   const [newOpen, setNewOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const user = useAuthStore((state) => state.user);
   const clear = useAuthStore((state) => state.clear);
   const lockMaster = useMasterStore((state) => state.lock);
@@ -210,17 +284,19 @@ export function PlayLibrary() {
 
   return (
     <div className="scroll-thin h-full overflow-y-auto">
-      <header className="flex items-center gap-3 border-b border-white/5 bg-panel-900/80 px-5 py-3">
-        <Link to="/" className="flex items-center gap-3" title="Go to your play library">
+      <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-white/5 bg-panel-900/80 px-3 py-3 sm:px-5">
+        <Link to="/" className="flex min-w-0 items-center gap-3" title="Go to your play library">
           <img src={BRAND_ICON} alt="Tempo" className="h-9 w-9 rounded-xl" />
-          <div>
+          <div className="min-w-0">
             <h1 className="text-sm font-bold">Tempo</h1>
-            <p className="text-[10px] text-slate-500">
+            <p className="hidden text-[10px] text-slate-500 md:block">
               3D volleyball play designer · built by Pranesh Selvaraj
             </p>
           </div>
         </Link>
-        <div className="ml-auto flex items-center gap-2">
+
+        {/* Desktop navigation */}
+        <div className="ml-auto hidden items-center gap-2 lg:flex">
           <Link to="/scorecard" className="btn">
             <ClipboardList className="h-3.5 w-3.5" />
             Scorecard
@@ -229,14 +305,12 @@ export function PlayLibrary() {
             <BookOpen className="h-3.5 w-3.5" />
             Rules
           </Link>
-          <span className="hidden text-xs text-slate-400 sm:block">
+          <span className="hidden text-xs text-slate-400 xl:block">
             {user?.name ?? user?.email}
           </span>
-          {DEMO_MODE && (
-            <Button variant="ghost" onClick={startTour} title="How Tempo works">
-              <CircleHelp className="h-3.5 w-3.5" />
-            </Button>
-          )}
+          <Button variant="ghost" onClick={startTour} title="How Tempo works">
+            <CircleHelp className="h-3.5 w-3.5" />
+          </Button>
           <ThemeSwitcher compact />
           <Button
             variant="ghost"
@@ -254,91 +328,147 @@ export function PlayLibrary() {
             New play
           </Button>
         </div>
+
+        {/* Phone + tablet navigation */}
+        <div className="ml-auto flex items-center gap-2 lg:hidden">
+          <span className="hidden text-xs text-slate-400 sm:block">
+            {user?.name ?? user?.email}
+          </span>
+          <Button onClick={() => setNewOpen(true)} title="New play">
+            <Plus className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">New play</span>
+          </Button>
+          <Dropdown label="Menu" button={<MenuIcon className="h-4 w-4" />}>
+            {(close) => (
+              <div className="space-y-0.5">
+                <Link to="/interactive" onClick={close} className={menuItemClass}>
+                  <MousePointerClick className="h-3.5 w-3.5" />
+                  Interactive play
+                </Link>
+                <Link to="/scorecard" onClick={close} className={menuItemClass}>
+                  <ClipboardList className="h-3.5 w-3.5" />
+                  Scorecard
+                </Link>
+                <Link to="/rules" onClick={close} className={menuItemClass}>
+                  <BookOpen className="h-3.5 w-3.5" />
+                  Rules
+                </Link>
+                <button
+                  type="button"
+                  className={menuItemClass}
+                  onClick={() => {
+                    close();
+                    startTour();
+                  }}
+                >
+                  <CircleHelp className="h-3.5 w-3.5" />
+                  How Tempo works
+                </button>
+                <button
+                  type="button"
+                  className={menuItemClass}
+                  onClick={() => {
+                    close();
+                    setAboutOpen(true);
+                  }}
+                >
+                  <Info className="h-3.5 w-3.5" />
+                  About &amp; license
+                </button>
+                <div className="my-1 border-t border-white/5" />
+                <div className="px-1 py-1">
+                  <ThemeSwitcher compact />
+                </div>
+                <button
+                  type="button"
+                  className={menuItemClass}
+                  onClick={() => {
+                    close();
+                    if (DEMO_MODE) lockMaster();
+                    else clear();
+                  }}
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  {DEMO_MODE ? 'Lock preview' : 'Sign out'}
+                </button>
+              </div>
+            )}
+          </Dropdown>
+        </div>
       </header>
 
-      <div className="mx-auto max-w-7xl p-5">
+      <div className="mx-auto max-w-7xl p-4 sm:p-5">
         <div className="grid items-start gap-4 lg:grid-cols-2">
-          <div className="min-w-0 space-y-4">
-            <ScorecardWidget />
-            <MatchHistoryPanel />
-            {!list.isLoading && !list.error && plays.length > 0 && <LibraryStats plays={plays} />}
-          </div>
-
-          <div className="min-w-0 space-y-4">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => setCategory('all')}
-                className={cn(
-                  'chip',
-                  category === 'all' && 'border-sky-400/50 bg-sky-500/15 text-sky-100',
-                )}
-              >
-                All plays
-              </button>
-              {PLAY_CATEGORIES.map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setCategory(value)}
-                  className={cn(
-                    'chip',
-                    category === value && 'border-sky-400/50 bg-sky-500/15 text-sky-100',
-                  )}
-                >
-                  {PLAY_CATEGORY_LABELS[value]}
-                </button>
-              ))}
-            </div>
-
-            <Panel bodyClassName="space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-sm font-semibold text-slate-100">Your plays</h2>
-                <span className="chip">{filteredPlays.length}</span>
-                <div className="relative ml-auto w-56">
-                  <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
-                  <TextInput
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Search plays…"
-                    className="pl-7"
-                  />
-                </div>
-              </div>
-
-              {list.isLoading ? (
-                <p className="py-10 text-center text-sm text-slate-500">Loading plays…</p>
-              ) : list.error ? (
-                <p className="py-10 text-center text-sm text-red-300">{list.error.message}</p>
-              ) : plays.length === 0 ? (
-                <div className="py-10 text-center">
-                  <p className="text-sm font-medium text-slate-200">No plays yet</p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Start on the court right away, or create a play and draw ball paths.
-                  </p>
-                  <div className="mt-4 flex justify-center gap-2">
-                    <Link to="/interactive" className="btn btn-primary">
-                      <MousePointerClick className="h-3.5 w-3.5" />
-                      Start interactive play
-                    </Link>
-                    <Button onClick={() => setNewOpen(true)}>
-                      <Plus className="h-3.5 w-3.5" />
-                      New play
-                    </Button>
-                  </div>
-                </div>
-              ) : filteredPlays.length === 0 ? (
-                <p className="py-10 text-center text-sm text-slate-500">
-                  No plays match that search.
-                </p>
-              ) : (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {filteredPlays.map((play) => (
-                    <PlayCard key={play.id} play={play} />
+          <div className="order-1 min-w-0 space-y-4 lg:order-2">
+            {!list.isLoading && !list.error && plays.length === 0 ? (
+              <WelcomePanel onNew={() => setNewOpen(true)} onTour={startTour} />
+            ) : (
+              <>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setCategory('all')}
+                    className={cn(
+                      'chip',
+                      category === 'all' && 'border-sky-400/50 bg-sky-500/15 text-sky-100',
+                    )}
+                  >
+                    All plays
+                  </button>
+                  {PLAY_CATEGORIES.map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setCategory(value)}
+                      className={cn(
+                        'chip',
+                        category === value && 'border-sky-400/50 bg-sky-500/15 text-sky-100',
+                      )}
+                    >
+                      {PLAY_CATEGORY_LABELS[value]}
+                    </button>
                   ))}
                 </div>
-              )}
-            </Panel>
+
+                <Panel bodyClassName="space-y-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-sm font-semibold text-slate-100">Your plays</h2>
+                    <span className="chip">{filteredPlays.length}</span>
+                    <div className="relative ml-auto w-full sm:w-56">
+                      <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
+                      <TextInput
+                        value={query}
+                        onChange={(event) => setQuery(event.target.value)}
+                        placeholder="Search plays…"
+                        className="pl-7"
+                      />
+                    </div>
+                  </div>
+
+                  {list.isLoading ? (
+                    <p className="py-10 text-center text-sm text-slate-500">Loading plays…</p>
+                  ) : list.error ? (
+                    <p className="py-10 text-center text-sm text-red-300">{list.error.message}</p>
+                  ) : filteredPlays.length === 0 ? (
+                    <p className="py-10 text-center text-sm text-slate-500">
+                      No plays match that search.
+                    </p>
+                  ) : (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {filteredPlays.map((play) => (
+                        <PlayCard key={play.id} play={play} />
+                      ))}
+                    </div>
+                  )}
+                </Panel>
+              </>
+            )}
+          </div>
+
+          <div className="order-2 min-w-0 space-y-4 lg:order-1">
+            <ScorecardWidget />
+            {plays.length > 0 && <MatchHistoryPanel />}
+            {!list.isLoading && !list.error && plays.length > 0 && <LibraryStats plays={plays} />}
           </div>
         </div>
       </div>
@@ -353,10 +483,18 @@ export function PlayLibrary() {
         >
           Pranesh Selvaraj
         </a>
-        , volleyball player. MIT licensed.
+        , volleyball player. All rights reserved.{' '}
+        <button
+          type="button"
+          onClick={() => setAboutOpen(true)}
+          className="text-slate-300 underline-offset-2 hover:underline"
+        >
+          About &amp; license
+        </button>
       </footer>
 
       <NewPlayDialog open={newOpen} onClose={() => setNewOpen(false)} />
+      <AboutDialog open={aboutOpen} onClose={() => setAboutOpen(false)} />
     </div>
   );
 }

@@ -70,17 +70,17 @@ export function RulesBrowser() {
 
   return (
     <div className="scroll-thin h-full overflow-y-auto">
-      <header className="flex items-center gap-3 border-b border-white/5 bg-panel-900/80 px-5 py-3">
+      <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-white/5 bg-panel-900/80 px-3 py-3 sm:px-5">
         <Link to="/" className="btn btn-ghost">
           <ArrowLeft className="h-4 w-4" />
         </Link>
-        <div>
+        <div className="min-w-0">
           <h1 className="text-sm font-bold">Rules reference</h1>
-          <p className="text-[10px] text-slate-500">
+          <p className="hidden text-[10px] text-slate-500 sm:block">
             Essentials + diagrams · FIVB rule book 2025–2028
           </p>
         </div>
-        <div className="relative ml-auto w-64">
+        <div className="relative w-full sm:ml-auto sm:w-64">
           <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
           <TextInput
             value={query}
@@ -130,6 +130,34 @@ export function RulesBrowser() {
         </nav>
 
         <div className="min-w-0 flex-1 space-y-5">
+          {!searching && (
+            <div className="scroll-thin -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 md:hidden">
+              <button
+                type="button"
+                onClick={() => setCategory(null)}
+                className={cn(
+                  'chip shrink-0',
+                  !category && 'border-sky-400/50 bg-sky-500/15 text-sky-100',
+                )}
+              >
+                All
+              </button>
+              {RULE_CATEGORIES.map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setCategory(value)}
+                  className={cn(
+                    'chip shrink-0',
+                    category === value && 'border-sky-400/50 bg-sky-500/15 text-sky-100',
+                  )}
+                >
+                  {value}
+                </button>
+              ))}
+            </div>
+          )}
+
           {!searching && <RuleBookBanner />}
 
           {grouped.length === 0 && (
