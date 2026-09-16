@@ -304,7 +304,7 @@ function PlayStep() {
     quick.markSaving();
     try {
       const play = await createPlay.mutateAsync({
-        name: quick.name.trim() || 'Quick play',
+        name: quick.name.trim() || `Quick play · R${quick.rotation}`,
         category: 'serve_receive',
         rotation: quick.rotation,
         formation: quick.formation === 'custom' ? '5-1' : quick.formation,

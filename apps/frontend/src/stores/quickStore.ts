@@ -122,7 +122,7 @@ const initialState = {
   roles: {} as QuickRoles,
   customFormations: {} as Record<string, PlayerState[]>,
   libero: true,
-  name: 'Quick play',
+  name: '',
   setHeight: QUICK_SET_HEIGHT_DEFAULT,
   receiveFormation: null as PlayerState[] | null,
   attackFormation: null as PlayerState[] | null,

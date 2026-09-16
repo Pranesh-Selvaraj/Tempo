@@ -146,7 +146,7 @@ export function QuickPlayPage() {
           <TextInput
             value={name}
             onChange={(event) => setName(event.target.value)}
-            placeholder="Play name"
+            placeholder="Name your play…"
             className="w-52"
           />
           <Select
