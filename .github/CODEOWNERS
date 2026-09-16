@@ -1,0 +1,4 @@
+# Default owner for everything in this repository.
+# Reviews are not required by branch protection; this exists so GitHub routes
+# review requests to the maintainer automatically.
+* @Pranesh-Selvaraj
