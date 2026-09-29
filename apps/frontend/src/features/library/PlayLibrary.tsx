@@ -5,11 +5,13 @@ import {
   CircleHelp,
   ClipboardList,
   Info,
+  Loader2,
   LogOut,
   Menu as MenuIcon,
   MousePointerClick,
   Plus,
   Search,
+  Sparkles,
   Volleyball,
 } from 'lucide-react';
 import {
@@ -26,6 +28,7 @@ import {
 import { cn } from '../../lib/cn';
 import { BRAND_ICON } from '../../lib/brand';
 import { DEMO_MODE } from '../../lib/mode';
+import { PLAY_TEMPLATES, buildTemplateDetail, type PlayTemplate } from '../../lib/playTemplates';
 import { trpc } from '../../lib/trpc';
 import type { Play } from '../../lib/trpc';
 import { useAuthStore } from '../../stores/authStore';
@@ -75,6 +78,10 @@ function NewPlayDialog({ open, onClose }: { open: boolean; onClose: () => void }
   const navigate = useNavigate();
   const utils = trpc.useContext();
   const create = trpc.play.create.useMutation();
+  const createTrajectory = trpc.trajectory.create.useMutation();
+  const upsertKeyframe = trpc.keyframe.upsert.useMutation();
+  const createPhase = trpc.phase.create.useMutation();
+  const createAnnotation = trpc.annotation.create.useMutation();
   const [name, setName] = useState('');
   const [category, setCategory] = useState<PlayCategory>('serve_receive');
   const [rotation, setRotation] = useState(1);
@@ -82,6 +89,8 @@ function NewPlayDialog({ open, onClose }: { open: boolean; onClose: () => void }
   const [libero, setLibero] = useState(true);
   const [courtType, setCourtType] = useState<'indoor' | 'beach'>('indoor');
   const [netHeight, setNetHeight] = useState(NET_HEIGHT_MEN);
+  const [templateBusy, setTemplateBusy] = useState<string | null>(null);
+  const [templateError, setTemplateError] = useState<string | null>(null);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -98,8 +107,84 @@ function NewPlayDialog({ open, onClose }: { open: boolean; onClose: () => void }
     );
   };
 
+  const useTemplate = async (template: PlayTemplate) => {
+    if (templateBusy) return;
+    setTemplateBusy(template.id);
+    setTemplateError(null);
+    try {
+      const play = await create.mutateAsync({
+        name: template.name,
+        category: template.category,
+        rotation: template.rotation,
+        formation: template.formation,
+        libero: template.libero,
+        courtType: template.courtType,
+        netHeight: template.netHeight,
+        description: template.description,
+      });
+      const detail = buildTemplateDetail(template);
+      for (const trajectory of detail.trajectories) {
+        await createTrajectory.mutateAsync({ playId: play.id, ...trajectory });
+      }
+      for (const keyframe of detail.keyframes) {
+        await upsertKeyframe.mutateAsync({
+          playId: play.id,
+          timestampMs: keyframe.timestampMs,
+          playerStates: keyframe.playerStates,
+          ballState: keyframe.ballState,
+          cameraState: null,
+        });
+      }
+      for (const phase of detail.phases) {
+        await createPhase.mutateAsync({ playId: play.id, ...phase });
+      }
+      if (detail.annotation) {
+        await createAnnotation.mutateAsync({ playId: play.id, ...detail.annotation });
+      }
+      await utils.play.list.invalidate();
+      onClose();
+      navigate(`/play/${play.id}`);
+    } catch (error) {
+      setTemplateError(error instanceof Error ? error.message : 'Could not create the play');
+    } finally {
+      setTemplateBusy(null);
+    }
+  };
+
   return (
     <Modal open={open} onClose={onClose} title="New play">
+      <div className="space-y-2 pb-1">
+        <p className="field-label">Start from a template</p>
+        <div className="space-y-1.5">
+          {PLAY_TEMPLATES.map((template) => (
+            <button
+              key={template.id}
+              type="button"
+              disabled={Boolean(templateBusy)}
+              onClick={() => void useTemplate(template)}
+              className="w-full rounded-lg border border-white/10 bg-panel-950/50 p-2.5 text-left transition hover:border-sky-400/40 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-100">
+                {templateBusy === template.id ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-sky-300" />
+                ) : (
+                  <Sparkles className="h-3.5 w-3.5 text-sky-300" />
+                )}
+                {template.name}
+              </span>
+              <span className="mt-0.5 block text-[10px] leading-relaxed text-slate-400">
+                {template.description}
+              </span>
+            </button>
+          ))}
+        </div>
+        {templateError && <p className="text-[10px] text-red-300">{templateError}</p>}
+        <div className="flex items-center gap-2 pt-1 text-[10px] uppercase tracking-wider text-slate-600">
+          <span className="h-px flex-1 bg-white/10" />
+          or start from scratch
+          <span className="h-px flex-1 bg-white/10" />
+        </div>
+      </div>
       <form className="space-y-3" onSubmit={submit}>
         <Field label="Play name">
           <TextInput
