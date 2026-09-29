@@ -58,7 +58,9 @@ export function QuickPlayPage() {
   const setFormation = useQuickStore((state) => state.setFormation);
   const setLibero = useQuickStore((state) => state.setLibero);
   const toggleRoster = useQuickStore((state) => state.toggleRoster);
-  const hasCustom = useQuickStore((state) => Object.keys(state.customFormations).length > 0);
+  const hasCustom = useQuickStore((state) =>
+    Boolean(state.customFormations[String(state.rotation)]),
+  );
 
   useEffect(() => {
     useQuickStore.getState().start();
