@@ -520,6 +520,17 @@ function NotesTab() {
     );
   };
 
+  const patchAnnotation = (id: string, patch: Partial<Annotation>) => {
+    usePlayStore.getState().updateAnnotation(id, patch);
+    updateAnnotation.mutate(
+      { id, ...patch },
+      {
+        onSuccess: () => useSaveStatusStore.getState().succeed(),
+        onError: (error) => useSaveStatusStore.getState().fail(error.message),
+      },
+    );
+  };
+
   return (
     <div className="space-y-3">
       {pending ? (
@@ -585,6 +596,19 @@ function NotesTab() {
           }
         >
           <div className="space-y-2">
+            <Field label="Text">
+              <TextInput
+                defaultValue={annotation.text}
+                onBlur={(event) => {
+                  const next = event.target.value.trim();
+                  if (!next || next === annotation.text) {
+                    event.target.value = annotation.text;
+                    return;
+                  }
+                  patchAnnotation(annotation.id, { text: next });
+                }}
+              />
+            </Field>
             <div className="grid grid-cols-2 gap-2">
               <Field label="Visible from (ms)">
                 <NumberInput
@@ -592,14 +616,9 @@ function NotesTab() {
                   defaultValue={annotation.visibleFromMs ?? 0}
                   onBlur={(event) => {
                     const visibleFromMs = Math.max(0, Number(event.target.value));
-                    usePlayStore.getState().updateAnnotation(annotation.id, { visibleFromMs });
-                    updateAnnotation.mutate(
-                      { id: annotation.id, visibleFromMs },
-                      {
-                        onSuccess: () => useSaveStatusStore.getState().succeed(),
-                        onError: (error) => useSaveStatusStore.getState().fail(error.message),
-                      },
-                    );
+                    if (visibleFromMs !== (annotation.visibleFromMs ?? 0)) {
+                      patchAnnotation(annotation.id, { visibleFromMs });
+                    }
                   }}
                 />
               </Field>
@@ -609,18 +628,40 @@ function NotesTab() {
                   defaultValue={annotation.visibleToMs ?? 0}
                   onBlur={(event) => {
                     const visibleToMs = Math.max(1, Number(event.target.value));
-                    usePlayStore.getState().updateAnnotation(annotation.id, { visibleToMs });
-                    updateAnnotation.mutate(
-                      { id: annotation.id, visibleToMs },
-                      {
-                        onSuccess: () => useSaveStatusStore.getState().succeed(),
-                        onError: (error) => useSaveStatusStore.getState().fail(error.message),
-                      },
-                    );
+                    if (visibleToMs !== (annotation.visibleToMs ?? 0)) {
+                      patchAnnotation(annotation.id, { visibleToMs });
+                    }
                   }}
                 />
               </Field>
             </div>
+            <div className="flex flex-wrap items-center gap-1">
+              <span className="mr-1 text-[10px] uppercase tracking-wide text-slate-500">Colour</span>
+              {ANNOTATION_COLORS.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  aria-label={`Note colour ${option}`}
+                  aria-pressed={option === annotation.color}
+                  onClick={() => patchAnnotation(annotation.id, { color: option })}
+                  className={cn(
+                    'h-5 w-5 rounded-full border-2',
+                    option === annotation.color ? 'border-white' : 'border-transparent',
+                  )}
+                  style={{ backgroundColor: option }}
+                />
+              ))}
+            </div>
+            <Button
+              className="w-full"
+              onClick={() => {
+                const durationMs = Math.round(usePlayStore.getState().durationMs);
+                patchAnnotation(annotation.id, { visibleFromMs: 0, visibleToMs: durationMs });
+              }}
+              title="Show this note for the whole play"
+            >
+              Show whole play
+            </Button>
             <Button
               variant="danger"
               className="w-full"
