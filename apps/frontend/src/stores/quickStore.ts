@@ -479,11 +479,14 @@ export const useQuickStore = create<QuickState>((set, get) => ({
 
   startPlayback: () => {
     const { receiveFormation, ballTargets, spikeTarget, setHeight, blockers, roles } = get();
-    if (!receiveFormation || ballTargets.length < 3) return;
+    if (ballTargets.length < 3) return;
     const play = usePlayStore.getState().play;
     if (!play) return;
     get().beginHistory();
 
+    // If the coach jumped straight to the ball path without locking the
+    // receive setup, snapshot the current positions instead of doing nothing.
+    const receive = receiveFormation ?? usePlayStore.getState().players.map(cloneState);
     const anchorZ = spikeTarget?.z ?? ballTargets[2]?.z ?? 0;
     const synced = syncOpponents(usePlayStore.getState().players, blockers, anchorZ);
     const attack = autoPose(synced, {
@@ -498,7 +501,7 @@ export const useQuickStore = create<QuickState>((set, get) => ({
     usePlayStore.getState().setTrajectories(buildTrajectories(play.id, legs));
     usePlayStore.getState().setKeyframes(
       buildKeyframes(play.id, {
-        receive: receiveFormation,
+        receive,
         attack,
         serveTarget: ballTargets[0] ?? null,
         setterSpot: ballTargets[1] ?? null,
@@ -510,7 +513,7 @@ export const useQuickStore = create<QuickState>((set, get) => ({
     usePlayStore.getState().setDuration(QUICK_TIMING.totalMs);
     useTimelineStore.getState().setCurrent(0);
     useTimelineStore.getState().setPlaying(true);
-    set({ step: 'play', attackFormation: attack, blockers, selectedTarget: null });
+    set({ step: 'play', attackFormation: attack, blockers, selectedTarget: null, receiveFormation: receive });
   },
 
   markSaving: () => set({ saving: true, error: null }),

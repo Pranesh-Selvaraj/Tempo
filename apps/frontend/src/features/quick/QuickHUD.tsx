@@ -30,18 +30,28 @@ const TARGET_LABELS = ['Serve lands', 'Pass goes', 'Set goes'];
 function StepChips() {
   const step = useQuickStore((state) => state.step);
   const setStep = useQuickStore((state) => state.setStep);
+  const hasBallPath = useQuickStore((state) => state.ballTargets.length >= 3);
   return (
     <div className="flex flex-wrap items-center gap-1">
-      {QUICK_STEPS.map((value: QuickStep) => (
-        <button
-          key={value}
-          type="button"
-          onClick={() => setStep(value)}
-          className={cn('chip', step === value && 'border-sky-400/50 bg-sky-500/15 text-sky-100')}
-        >
-          {QUICK_STEP_LABELS[value]}
-        </button>
-      ))}
+      {QUICK_STEPS.map((value: QuickStep) => {
+        const watchDisabled = value === 'play' && !hasBallPath;
+        return (
+          <button
+            key={value}
+            type="button"
+            onClick={() => setStep(value)}
+            disabled={watchDisabled}
+            title={watchDisabled ? 'Place the serve, pass and set targets first' : undefined}
+            className={cn(
+              'chip',
+              watchDisabled && 'cursor-not-allowed opacity-40',
+              step === value && 'border-sky-400/50 bg-sky-500/15 text-sky-100',
+            )}
+          >
+            {QUICK_STEP_LABELS[value]}
+          </button>
+        );
+      })}
     </div>
   );
 }
