@@ -156,7 +156,7 @@ export function EditorPage() {
         )}
         <main className="relative flex min-w-0 flex-1 items-center justify-center overflow-hidden bg-panel-950">
           <div
-            className="relative h-full"
+            className={cn('relative h-full', !recording && 'w-full')}
             style={
               recording
                 ? { aspectRatio: `${recordingFrame.width} / ${recordingFrame.height}`, maxWidth: '100%' }
