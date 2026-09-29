@@ -1113,6 +1113,7 @@ export function ScorecardPage() {
   const [rosterOpen, setRosterOpen] = useState(false);
   const [subSide, setSubSide] = useState<TeamSide | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
+  const [earlyFinishOpen, setEarlyFinishOpen] = useState(false);
 
   const now = useTicker(
     match.clock.running || match.timeoutTimer.endsAt !== null || match.countdown.running,
@@ -1151,8 +1152,71 @@ export function ScorecardPage() {
     URL.revokeObjectURL(url);
   };
 
+  const exportStatsCsv = () => {
+    const teamName = (side: TeamSide) =>
+      side === 'home' ? match.config.homeName : match.config.awayName;
+    const header = [
+      'Team',
+      'Number',
+      'Name',
+      'Role',
+      'Service points',
+      'Max serving run',
+      'Rallies on court',
+      'Participation %',
+      'Subs in',
+      'Subs out',
+      'On court now',
+    ];
+    const rows = computePlayerStats(match)
+      .sort((a, b) =>
+        a.side === b.side
+          ? Number(a.number || 0) - Number(b.number || 0)
+          : a.side === 'home'
+            ? -1
+            : 1,
+      )
+      .map((stat) => [
+        teamName(stat.side),
+        stat.number,
+        stat.name,
+        stat.role,
+        stat.servicePoints,
+        stat.maxServingRun,
+        stat.ralliesOnCourt,
+        stat.participation,
+        stat.subsIn,
+        stat.subsOut,
+        stat.onCourt ? 'yes' : 'no',
+      ]);
+    const csv = [header, ...rows]
+      .map((row) =>
+        row
+          .map((cell) => {
+            const value = String(cell ?? '');
+            return /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+          })
+          .join(','),
+      )
+      .join('\r\n');
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    const slug = `${match.config.homeName}-vs-${match.config.awayName}`
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-');
+    anchor.href = url;
+    anchor.download = `tempo-stats-${slug}-${new Date().toISOString().slice(0, 10)}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
   const setNumber = currentSetNumber(match);
   const target = setTarget(match);
+  const setWon =
+    Math.max(match.homeScore, match.awayScore) >= target &&
+    Math.abs(match.homeScore - match.awayScore) >= 2;
+  const requestFinishSet = () => (setWon ? finishSet() : setEarlyFinishOpen(true));
   const deciding = isDecidingSet(match);
   const switchAt = switchSidesAt(match);
   const sidesNote =
@@ -1187,10 +1251,43 @@ export function ScorecardPage() {
             <Printer className="h-3.5 w-3.5" />
             Print / PDF
           </Button>
-          <Button onClick={exportJson} title="Download the match data as JSON">
-            <Download className="h-3.5 w-3.5" />
-            Export
-          </Button>
+          <Dropdown
+            label="Export"
+            buttonClassName="btn"
+            button={
+              <>
+                <Download className="h-3.5 w-3.5" />
+                Export
+              </>
+            }
+          >
+            {(close) => (
+              <>
+                <button
+                  type="button"
+                  className={menuItemClass}
+                  onClick={() => {
+                    close();
+                    exportJson();
+                  }}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Match data (JSON)
+                </button>
+                <button
+                  type="button"
+                  className={menuItemClass}
+                  onClick={() => {
+                    close();
+                    exportStatsCsv();
+                  }}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Player stats (CSV)
+                </button>
+              </>
+            )}
+          </Dropdown>
           <Button onClick={() => setRosterOpen(true)}>
             <Users className="h-3.5 w-3.5" />
             Lineups &amp; staff
@@ -1199,7 +1296,7 @@ export function ScorecardPage() {
             <Undo2 className="h-3.5 w-3.5" />
             Undo point
           </Button>
-          <Button onClick={finishSet} disabled={Boolean(match.winner)}>
+          <Button onClick={requestFinishSet} disabled={Boolean(match.winner)}>
             Finish set
           </Button>
           <Button variant="danger" onClick={() => setResetOpen(true)}>
@@ -1215,7 +1312,7 @@ export function ScorecardPage() {
             <Undo2 className="h-3.5 w-3.5" />
             Undo
           </Button>
-          <Button onClick={finishSet} disabled={Boolean(match.winner)}>
+          <Button onClick={requestFinishSet} disabled={Boolean(match.winner)}>
             Finish set
           </Button>
           <Dropdown label="More actions" button={<MoreVertical className="h-4 w-4" />}>
@@ -1242,6 +1339,17 @@ export function ScorecardPage() {
                 >
                   <Download className="h-3.5 w-3.5" />
                   Export data
+                </button>
+                <button
+                  type="button"
+                  className={menuItemClass}
+                  onClick={() => {
+                    close();
+                    exportStatsCsv();
+                  }}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Player stats (CSV)
                 </button>
                 <button
                   type="button"
@@ -1509,6 +1617,29 @@ export function ScorecardPage() {
             }}
           >
             Archive &amp; reset
+          </Button>
+        </div>
+      </Modal>
+      <Modal
+        open={earlyFinishOpen}
+        onClose={() => setEarlyFinishOpen(false)}
+        title="Finish set early?"
+        size="sm"
+      >
+        <p className="text-xs leading-relaxed text-slate-300">
+          The set is not finished: {match.config.homeName} {match.homeScore} – {match.awayScore}{' '}
+          {match.config.awayName} (first to {target}, win by 2).
+        </p>
+        <div className="mt-4 flex flex-wrap justify-end gap-2">
+          <Button onClick={() => setEarlyFinishOpen(false)}>Cancel</Button>
+          <Button
+            variant="primary"
+            onClick={() => {
+              finishSet();
+              setEarlyFinishOpen(false);
+            }}
+          >
+            Finish set anyway
           </Button>
         </div>
       </Modal>
