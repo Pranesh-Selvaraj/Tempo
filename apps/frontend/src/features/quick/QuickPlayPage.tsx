@@ -12,6 +12,7 @@ import {
 import { cn } from '../../lib/cn';
 import { bridge } from '../../lib/bridge';
 import { Button, Select, TextInput } from '../../components/ui';
+import { Dropdown, menuItemClass } from '../../components/Dropdown';
 import { useCameraStore } from '../../stores/cameraStore';
 import { useEditorStore } from '../../stores/editorStore';
 import { useQuickStore, type QuickFormation } from '../../stores/quickStore';
@@ -27,28 +28,64 @@ const NUDGE_UP = new Vector3(0, 1, 0);
 function QuickCameraControls() {
   const presetId = useCameraStore((state) => state.presetId);
   const setPreset = useCameraStore((state) => state.setPreset);
+  const currentLabel = CAMERA_PRESETS_MAP[presetId].label;
+
   return (
-    <div className="pointer-events-auto absolute right-3 top-20 z-20 flex flex-col items-end gap-1">
-      <span className="panel flex items-center gap-1.5 px-2 py-1 text-[10px] uppercase tracking-wider text-slate-500">
-        <Camera className="h-3 w-3" />
-        Angles
-      </span>
-      {CAMERA_PRESETS.map((id: CameraPresetId) => (
-        <button
-          key={id}
-          type="button"
-          onClick={() => setPreset(id)}
-          className={cn(
-            'panel px-2.5 py-1 text-[11px] font-medium transition',
-            presetId === id
-              ? 'border-sky-400/50 text-sky-200'
-              : 'text-slate-400 hover:text-slate-100',
-          )}
+    <>
+      {/* Desktop: stacked preset list */}
+      <div className="pointer-events-auto absolute right-3 top-20 z-20 hidden flex-col items-end gap-1 lg:flex">
+        <span className="panel flex items-center gap-1.5 px-2 py-1 text-[10px] uppercase tracking-wider text-slate-500">
+          <Camera className="h-3 w-3" />
+          Angles
+        </span>
+        {CAMERA_PRESETS.map((id: CameraPresetId) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setPreset(id)}
+            className={cn(
+              'panel px-2.5 py-1 text-[11px] font-medium transition',
+              presetId === id
+                ? 'border-sky-400/50 text-sky-200'
+                : 'text-slate-400 hover:text-slate-100',
+            )}
+          >
+            {CAMERA_PRESETS_MAP[id].label}
+          </button>
+        ))}
+      </div>
+
+      {/* Phones/tablets: one compact picker instead of a column of buttons */}
+      <div className="pointer-events-auto absolute right-3 top-20 z-20 lg:hidden">
+        <Dropdown
+          label={`Camera angle: ${currentLabel}`}
+          buttonClassName="panel flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium text-slate-300 transition hover:text-slate-100"
+          button={
+            <>
+              <Camera className="h-3 w-3" />
+              {currentLabel}
+            </>
+          }
         >
-          {CAMERA_PRESETS_MAP[id].label}
-        </button>
-      ))}
-    </div>
+          {(close) =>
+            CAMERA_PRESETS.map((id: CameraPresetId) => (
+              <button
+                key={id}
+                type="button"
+                role="menuitem"
+                className={cn(menuItemClass, presetId === id && 'text-sky-200')}
+                onClick={() => {
+                  setPreset(id);
+                  close();
+                }}
+              >
+                {CAMERA_PRESETS_MAP[id].label}
+              </button>
+            ))
+          }
+        </Dropdown>
+      </div>
+    </>
   );
 }
 

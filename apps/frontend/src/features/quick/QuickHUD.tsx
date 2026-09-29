@@ -1,6 +1,9 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  ChevronDown,
+  ChevronUp,
+  CircleHelp,
   Loader2,
   Pause,
   Play,
@@ -62,7 +65,7 @@ function HistoryButtons() {
   const undo = useQuickStore((state) => state.undo);
   const redo = useQuickStore((state) => state.redo);
   return (
-    <div className="ml-auto flex items-center gap-1">
+    <div className="flex items-center gap-1">
       <button
         type="button"
         className="btn btn-ghost"
@@ -461,8 +464,65 @@ function PlayStep() {
   );
 }
 
+const HUD_COLLAPSED_KEY = 'tempo.quick.hud.collapsed';
+
+const SHORTCUTS: [string, string][] = [
+  ['1 – 3', 'Select the serve, pass or set marker'],
+  ['4', 'Select the spike marker'],
+  ['Arrows', 'Nudge the selected marker (Shift for bigger steps)'],
+  ['Ctrl/Cmd + Z', 'Undo the last change'],
+  ['Ctrl/Cmd + Shift + Z', 'Redo'],
+];
+
+function ShortcutHelp() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        type="button"
+        className="btn btn-ghost"
+        onClick={() => setOpen(true)}
+        title="Keyboard shortcuts"
+        aria-label="Keyboard shortcuts"
+      >
+        <CircleHelp className="h-3.5 w-3.5" />
+      </button>
+      <Modal open={open} onClose={() => setOpen(false)} title="Interactive play shortcuts" size="sm">
+        <ul className="space-y-2">
+          {SHORTCUTS.map(([keys, what]) => (
+            <li key={keys} className="flex items-center justify-between gap-3 text-xs">
+              <kbd className="rounded border border-white/10 bg-white/5 px-1.5 py-0.5 font-mono text-[10px] text-slate-200">
+                {keys}
+              </kbd>
+              <span className="flex-1 text-right text-slate-400">{what}</span>
+            </li>
+          ))}
+        </ul>
+      </Modal>
+    </>
+  );
+}
+
 export function QuickHUD() {
   const step = useQuickStore((state) => state.step);
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return sessionStorage.getItem(HUD_COLLAPSED_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
+  const toggleCollapsed = () =>
+    setCollapsed((value) => {
+      const next = !value;
+      try {
+        sessionStorage.setItem(HUD_COLLAPSED_KEY, next ? '1' : '0');
+      } catch {
+        /* storage unavailable */
+      }
+      return next;
+    });
+
   const content = useMemo(() => {
     if (step === 'receive') return <ReceiveStep />;
     if (step === 'ball') return <BallStep />;
@@ -475,10 +535,23 @@ export function QuickHUD() {
       <div className="panel pointer-events-auto w-full max-w-3xl space-y-3 p-3">
         <div className="flex items-center gap-1">
           <StepChips />
-          <HistoryButtons />
+          <div className="ml-auto flex items-center gap-1">
+            <HistoryButtons />
+            <ShortcutHelp />
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={toggleCollapsed}
+              title={collapsed ? 'Expand coach controls' : 'Collapse coach controls'}
+              aria-label={collapsed ? 'Expand coach controls' : 'Collapse coach controls'}
+              aria-expanded={!collapsed}
+            >
+              {collapsed ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            </button>
+          </div>
         </div>
-        {content}
-        {(step === 'ball' || step === 'attack') && <RoleAssignments />}
+        {!collapsed && content}
+        {!collapsed && (step === 'ball' || step === 'attack') && <RoleAssignments />}
       </div>
     </div>
   );
