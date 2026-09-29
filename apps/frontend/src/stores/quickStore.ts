@@ -306,15 +306,23 @@ export const useQuickStore = create<QuickState>((set, get) => ({
   setRotation: (rotation) => {
     get().beginHistory();
     const { formation, libero, customFormations } = get();
+    let nextFormation: QuickFormation = formation;
     if (formation === 'custom') {
       const saved = customFormations[String(rotation)];
-      if (saved) usePlayStore.getState().setPlayers(saved.map(cloneState));
-      else usePlayStore.getState().setPlayers(basePlayersFor(rotation, '5-1', libero));
+      if (saved) {
+        usePlayStore.getState().setPlayers(saved.map(cloneState));
+      } else {
+        // No custom setup saved for this rotation: fall back instead of
+        // leaving the picker on "Custom" while the court keeps old players.
+        nextFormation = '5-1';
+        usePlayStore.getState().setPlayers(basePlayersFor(rotation, '5-1', libero));
+      }
     } else {
       usePlayStore.getState().setPlayers(basePlayersFor(rotation, formation, libero));
     }
     set({
       rotation,
+      formation: nextFormation,
       receiveFormation: null,
       attackFormation: null,
       selectedTarget: null,
@@ -325,16 +333,20 @@ export const useQuickStore = create<QuickState>((set, get) => ({
     get().beginHistory();
     const { rotation, libero, customFormations } = get();
     const play = usePlayStore.getState().play;
-    if (formation === 'custom') {
-      const saved = customFormations[String(rotation)];
-      if (saved) usePlayStore.getState().setPlayers(saved.map(cloneState));
-      if (play) usePlayStore.getState().setPlay({ ...play, formation: '5-1' });
+    const saved = formation === 'custom' ? customFormations[String(rotation)] : null;
+    const nextFormation: QuickFormation = formation === 'custom' && !saved ? '5-1' : formation;
+    if (nextFormation === 'custom' && saved) {
+      usePlayStore.getState().setPlayers(saved.map(cloneState));
     } else {
-      usePlayStore.getState().setPlayers(basePlayersFor(rotation, formation, libero));
-      if (play) usePlayStore.getState().setPlay({ ...play, formation });
+      usePlayStore.getState().setPlayers(basePlayersFor(rotation, nextFormation, libero));
+    }
+    if (play) {
+      usePlayStore
+        .getState()
+        .setPlay({ ...play, formation: nextFormation === 'custom' ? '5-1' : nextFormation });
     }
     set({
-      formation,
+      formation: nextFormation,
       receiveFormation: null,
       attackFormation: null,
       selectedTarget: null,
