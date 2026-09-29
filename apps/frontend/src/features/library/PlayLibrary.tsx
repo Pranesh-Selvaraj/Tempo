@@ -220,7 +220,10 @@ function WelcomePanel({ onNew, onTour }: { onNew: () => void; onTour: () => void
         <h2 className="mt-4 text-lg font-bold text-slate-100">Build your first play</h2>
         <p className="mt-1 max-w-lg text-xs leading-relaxed text-slate-400">
           Place your six on a real court, tap where the ball travels, then save the run as a play
-          your team can replay, present and record. Everything stays in this browser.
+          your team can replay, present and record.{' '}
+          {DEMO_MODE
+            ? 'Everything stays in this browser.'
+            : 'Everything stays on your server.'}
         </p>
         <div className="mt-5 flex flex-wrap gap-2">
           <Button variant="primary" onClick={onNew}>
