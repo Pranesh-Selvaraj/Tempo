@@ -22,64 +22,64 @@ import { QuickRoster } from './QuickRoster';
 function QuickCameraControls() {
   const presetId = useCameraStore((state) => state.presetId);
   const setPreset = useCameraStore((state) => state.setPreset);
-  const currentLabel = CAMERA_PRESETS_MAP[presetId].label;
-
   return (
-    <>
-      {/* Desktop: stacked preset list */}
-      <div className="pointer-events-auto absolute right-3 top-20 z-20 hidden flex-col items-end gap-1 lg:flex">
-        <span className="panel flex items-center gap-1.5 px-2 py-1 text-[10px] uppercase tracking-wider text-slate-500">
-          <Camera className="h-3 w-3" />
-          Angles
-        </span>
-        {CAMERA_PRESETS.map((id: CameraPresetId) => (
+    <div className="pointer-events-auto absolute right-3 top-20 z-20 hidden flex-col items-end gap-1 lg:flex">
+      <span className="panel flex items-center gap-1.5 px-2 py-1 text-[10px] uppercase tracking-wider text-slate-500">
+        <Camera className="h-3 w-3" />
+        Angles
+      </span>
+      {CAMERA_PRESETS.map((id: CameraPresetId) => (
+        <button
+          key={id}
+          type="button"
+          onClick={() => setPreset(id)}
+          className={cn(
+            'panel px-2.5 py-1 text-[11px] font-medium transition',
+            presetId === id
+              ? 'border-sky-400/50 text-sky-200'
+              : 'text-slate-400 hover:text-slate-100',
+          )}
+        >
+          {CAMERA_PRESETS_MAP[id].label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Compact camera picker that lives in the header on phones and tablets. */
+function MobileCameraPicker() {
+  const presetId = useCameraStore((state) => state.presetId);
+  const setPreset = useCameraStore((state) => state.setPreset);
+  const currentLabel = CAMERA_PRESETS_MAP[presetId].label;
+  return (
+    <Dropdown
+      label={`Camera angle: ${currentLabel}`}
+      buttonClassName="btn"
+      button={
+        <>
+          <Camera className="h-3.5 w-3.5" />
+          {currentLabel}
+        </>
+      }
+    >
+      {(close) =>
+        CAMERA_PRESETS.map((id: CameraPresetId) => (
           <button
             key={id}
             type="button"
-            onClick={() => setPreset(id)}
-            className={cn(
-              'panel px-2.5 py-1 text-[11px] font-medium transition',
-              presetId === id
-                ? 'border-sky-400/50 text-sky-200'
-                : 'text-slate-400 hover:text-slate-100',
-            )}
+            role="menuitem"
+            className={cn(menuItemClass, presetId === id && 'text-sky-200')}
+            onClick={() => {
+              setPreset(id);
+              close();
+            }}
           >
             {CAMERA_PRESETS_MAP[id].label}
           </button>
-        ))}
-      </div>
-
-      {/* Phones/tablets: one compact picker instead of a column of buttons */}
-      <div className="pointer-events-auto absolute right-3 top-20 z-20 lg:hidden">
-        <Dropdown
-          label={`Camera angle: ${currentLabel}`}
-          buttonClassName="panel flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium text-slate-300 transition hover:text-slate-100"
-          button={
-            <>
-              <Camera className="h-3 w-3" />
-              {currentLabel}
-            </>
-          }
-        >
-          {(close) =>
-            CAMERA_PRESETS.map((id: CameraPresetId) => (
-              <button
-                key={id}
-                type="button"
-                role="menuitem"
-                className={cn(menuItemClass, presetId === id && 'text-sky-200')}
-                onClick={() => {
-                  setPreset(id);
-                  close();
-                }}
-              >
-                {CAMERA_PRESETS_MAP[id].label}
-              </button>
-            ))
-          }
-        </Dropdown>
-      </div>
-    </>
+        ))
+      }
+    </Dropdown>
   );
 }
 
@@ -224,6 +224,7 @@ export function QuickPlayPage() {
           >
             Libero
           </Button>
+          <MobileCameraPicker />
         </div>
       </header>
 
