@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Camera, MousePointerClick, Users } from 'lucide-react';
+import { Vector3 } from 'three';
 import {
   CAMERA_PRESETS,
   CAMERA_PRESETS_MAP,
@@ -9,6 +10,7 @@ import {
   type CameraPresetId,
 } from '@tempo/shared-types';
 import { cn } from '../../lib/cn';
+import { bridge } from '../../lib/bridge';
 import { Button, Select, TextInput } from '../../components/ui';
 import { useCameraStore } from '../../stores/cameraStore';
 import { useEditorStore } from '../../stores/editorStore';
@@ -17,6 +19,10 @@ import { Scene } from '../court/Scene';
 import { OrientationNotice } from './OrientationNotice';
 import { QuickHUD } from './QuickHUD';
 import { QuickRoster } from './QuickRoster';
+
+const NUDGE_FORWARD = new Vector3();
+const NUDGE_RIGHT = new Vector3();
+const NUDGE_UP = new Vector3(0, 1, 0);
 
 function QuickCameraControls() {
   const presetId = useCameraStore((state) => state.presetId);
@@ -105,11 +111,41 @@ export function QuickPlayPage() {
       return;
     }
     if (event.key.startsWith('Arrow') && quick.selectedTarget !== null) {
-      const amount = event.shiftKey ? 1 : 0.25;
-      const dx = event.key === 'ArrowUp' ? -amount : event.key === 'ArrowDown' ? amount : 0;
-      const dz = event.key === 'ArrowLeft' ? amount : event.key === 'ArrowRight' ? -amount : 0;
       event.preventDefault();
-      quick.nudgeSelected(dx, dz);
+      const amount = event.shiftKey ? 1 : 0.25;
+      const camera = bridge.camera;
+      if (!camera) return;
+
+      // Nudge relative to what the coach sees: project the camera's view
+      // direction and screen-right onto the floor plane.
+      camera.getWorldDirection(NUDGE_FORWARD);
+      NUDGE_FORWARD.y = 0;
+      if (NUDGE_FORWARD.lengthSq() < 1e-6) {
+        // Looking straight down (Top Down preset): fall back to the camera's
+        // local up axis projected on the floor.
+        NUDGE_FORWARD.setFromMatrixColumn(camera.matrixWorld, 1);
+        NUDGE_FORWARD.y = 0;
+        if (NUDGE_FORWARD.lengthSq() < 1e-6) NUDGE_FORWARD.set(0, 0, -1);
+      }
+      NUDGE_FORWARD.normalize();
+      NUDGE_RIGHT.crossVectors(NUDGE_FORWARD, NUDGE_UP).normalize();
+
+      let dx = 0;
+      let dz = 0;
+      if (event.key === 'ArrowUp') {
+        dx = NUDGE_FORWARD.x;
+        dz = NUDGE_FORWARD.z;
+      } else if (event.key === 'ArrowDown') {
+        dx = -NUDGE_FORWARD.x;
+        dz = -NUDGE_FORWARD.z;
+      } else if (event.key === 'ArrowRight') {
+        dx = NUDGE_RIGHT.x;
+        dz = NUDGE_RIGHT.z;
+      } else if (event.key === 'ArrowLeft') {
+        dx = -NUDGE_RIGHT.x;
+        dz = -NUDGE_RIGHT.z;
+      }
+      quick.nudgeSelected(dx * amount, dz * amount);
     }
   }, []);
 
