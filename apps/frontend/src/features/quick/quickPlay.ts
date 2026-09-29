@@ -200,7 +200,12 @@ export interface QuickRoles {
   spiker?: string | null;
 }
 
-/** Explicit role picks when set, otherwise the nearest player to each target. */
+/**
+ * Explicit role picks when set, otherwise the nearest player to each target.
+ * One player can never hold two roles: the receiver is resolved first, then the
+ * setter and spiker are picked from the remaining players (explicit picks that
+ * clash with an already-assigned role are ignored and re-resolved).
+ */
 export function resolveRoleIds(
   players: PlayerState[],
   opts: {
@@ -212,23 +217,27 @@ export function resolveRoleIds(
   },
 ): { receiver: string | null; setter: string | null; spiker: string | null } {
   const home = homePlayers(players);
-  const pick = (id: string | null | undefined, fallback: PlayerState | null): string | null =>
-    home.some((player) => player.playerId === id) ? (id as string) : (fallback?.playerId ?? null);
+  const valid = (id: string | null | undefined): string | null =>
+    id && home.some((player) => player.playerId === id) ? id : null;
 
-  const setter = pick(opts.roles?.setter, setterFor(home, opts.setterSpot ?? null));
-  const exclude = setter ? [setter] : [];
-  const spikerFallback =
-    nearestTo(home, opts.spikeTarget ?? null, exclude) ??
-    nearestTo(home, opts.setTarget ?? null, exclude);
+  const receiver =
+    valid(opts.roles?.receiver) ??
+    (opts.serveTarget ? (receiverFor(home, opts.serveTarget)?.playerId ?? null) : null);
 
-  return {
-    receiver: pick(
-      opts.roles?.receiver,
-      opts.serveTarget ? receiverFor(home, opts.serveTarget) : null,
-    ),
-    setter,
-    spiker: pick(opts.roles?.spiker, spikerFallback),
-  };
+  const explicitSetter = valid(opts.roles?.setter);
+  const setter =
+    (explicitSetter && explicitSetter !== receiver ? explicitSetter : null) ??
+    (nearestTo(home, opts.setterSpot ?? null, receiver ? [receiver] : [])?.playerId ?? null);
+
+  const taken = [receiver, setter].filter((id): id is string => id !== null);
+  const explicitSpiker = valid(opts.roles?.spiker);
+  const spiker =
+    (explicitSpiker && !taken.includes(explicitSpiker) ? explicitSpiker : null) ??
+    (nearestTo(home, opts.spikeTarget ?? null, taken)?.playerId ??
+      nearestTo(home, opts.setTarget ?? null, taken)?.playerId ??
+      null);
+
+  return { receiver, setter, spiker };
 }
 
 export function autoPose(
