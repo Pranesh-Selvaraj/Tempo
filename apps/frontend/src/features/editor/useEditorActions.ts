@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { trpc } from '../../lib/trpc';
 import { useEditorStore } from '../../stores/editorStore';
 import { usePlayStore } from '../../stores/playStore';
+import { useSaveStatusStore } from '../../stores/saveStatusStore';
 
 /** Delete whatever the inspector currently has selected. */
 export function useDeleteSelection() {
@@ -14,6 +15,8 @@ export function useDeleteSelection() {
   return useCallback(() => {
     const editor = useEditorStore.getState();
     const store = usePlayStore.getState();
+    const save = useSaveStatusStore.getState();
+    const fail = (error: { message: string }) => save.fail(error.message);
 
     if (editor.selectedKeyframeId) {
       const id = editor.selectedKeyframeId;
@@ -23,8 +26,9 @@ export function useDeleteSelection() {
           onSuccess: () => {
             store.removeKeyframe(id);
             editor.selectKeyframe(null);
+            save.succeed('Keyframe deleted');
           },
-          onError: (error) => console.error(error),
+          onError: fail,
         },
       );
       return;
@@ -37,8 +41,9 @@ export function useDeleteSelection() {
           onSuccess: () => {
             store.removeTrajectory(id);
             editor.selectTrajectory(null);
+            save.succeed('Ball path deleted');
           },
-          onError: (error) => console.error(error),
+          onError: fail,
         },
       );
       return;
@@ -51,8 +56,9 @@ export function useDeleteSelection() {
           onSuccess: () => {
             store.removePhase(id);
             editor.selectPhase(null);
+            save.succeed('Phase deleted');
           },
-          onError: (error) => console.error(error),
+          onError: fail,
         },
       );
       return;
@@ -65,8 +71,9 @@ export function useDeleteSelection() {
           onSuccess: () => {
             store.removeAnnotation(id);
             editor.selectAnnotation(null);
+            save.succeed('Note deleted');
           },
-          onError: (error) => console.error(error),
+          onError: fail,
         },
       );
       return;
@@ -79,16 +86,11 @@ export function useDeleteSelection() {
           onSuccess: () => {
             store.removeCameraPath(id);
             editor.selectCameraPath(null);
+            save.succeed('Camera path deleted');
           },
-          onError: (error) => console.error(error),
+          onError: fail,
         },
       );
     }
-  }, [
-    deleteAnnotation,
-    deleteCameraPath,
-    deleteKeyframe,
-    deletePhase,
-    deleteTrajectory,
-  ]);
+  }, [deleteAnnotation, deleteCameraPath, deleteKeyframe, deletePhase, deleteTrajectory]);
 }

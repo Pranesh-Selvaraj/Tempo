@@ -6,6 +6,7 @@ import { trpc } from '../../lib/trpc';
 import { useEditorStore } from '../../stores/editorStore';
 import { usePlayStore } from '../../stores/playStore';
 import { useTimelineStore } from '../../stores/timelineStore';
+import { SaveStatusToast } from '../../components/SaveStatusToast';
 import { Scene } from '../court/Scene';
 import { ExportDialog } from '../recording/ExportDialog';
 import { RenderQueueBadge } from '../recording/RenderQueueBadge';
@@ -125,6 +126,7 @@ export function EditorPage() {
     <div className={cn('flex h-full flex-col', recording && 'bg-black')}>
       <TimelineSync />
       <RenderQueueBadge />
+      {!recording && <SaveStatusToast />}
       {!recording && (
         <TopBar
           onExport={() => setExportOpen(true)}

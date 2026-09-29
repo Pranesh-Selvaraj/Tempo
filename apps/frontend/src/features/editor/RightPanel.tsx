@@ -34,6 +34,7 @@ import { trpc } from '../../lib/trpc';
 import { useCameraStore } from '../../stores/cameraStore';
 import { useEditorStore } from '../../stores/editorStore';
 import { usePlayStore } from '../../stores/playStore';
+import { useSaveStatusStore } from '../../stores/saveStatusStore';
 import { useTimelineStore } from '../../stores/timelineStore';
 import { Button, Field, NumberInput, Panel, Segmented, Select, TextArea, TextInput, Toggle } from '../../components/ui';
 import type { Annotation, CameraPath, Keyframe, Phase } from '../../lib/trpc';
@@ -48,21 +49,28 @@ function TrajectoryInspector({ trajectory }: { trajectory: Trajectory }) {
 
   const commit = (patch: Partial<Trajectory>) => {
     usePlayStore.getState().updateTrajectory(trajectory.id, patch);
+    const save = useSaveStatusStore.getState();
+    save.begin();
     update.mutate(
       { id: trajectory.id, ...patch },
-      { onError: (error) => console.error('Could not update trajectory', error) },
+      {
+        onSuccess: () => save.succeed(),
+        onError: (error) => save.fail(error.message),
+      },
     );
   };
 
   const removeTrajectory = () => {
+    const save = useSaveStatusStore.getState();
     remove.mutate(
       { id: trajectory.id },
       {
         onSuccess: () => {
           usePlayStore.getState().removeTrajectory(trajectory.id);
           useEditorStore.getState().selectTrajectory(null);
+          save.succeed('Ball path deleted');
         },
-        onError: (error) => console.error('Could not delete trajectory', error),
+        onError: (error) => save.fail(error.message),
       },
     );
   };
@@ -93,19 +101,25 @@ function TrajectoryInspector({ trajectory }: { trajectory: Trajectory }) {
           ))}
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2" key={`${trajectory.id}-timing`}>
           <Field label="Start (ms)">
             <NumberInput
               step={50}
-              value={trajectory.startMs}
-              onChange={(event) => commit({ startMs: Math.max(0, Number(event.target.value)) })}
+              defaultValue={trajectory.startMs}
+              onBlur={(event) => {
+                const startMs = Math.max(0, Number(event.target.value));
+                if (startMs !== trajectory.startMs) commit({ startMs });
+              }}
             />
           </Field>
           <Field label="Duration (ms)">
             <NumberInput
               step={50}
-              value={trajectory.durationMs}
-              onChange={(event) => commit({ durationMs: Math.max(50, Number(event.target.value)) })}
+              defaultValue={trajectory.durationMs}
+              onBlur={(event) => {
+                const durationMs = Math.max(50, Number(event.target.value));
+                if (durationMs !== trajectory.durationMs) commit({ durationMs });
+              }}
             />
           </Field>
         </div>
@@ -147,17 +161,20 @@ function TrajectoryInspector({ trajectory }: { trajectory: Trajectory }) {
         </Field>
 
         {point && selectedPointIndex !== null && (
-          <div className="grid grid-cols-3 gap-1.5">
+          <div
+            className="grid grid-cols-3 gap-1.5"
+            key={`${trajectory.id}-point-${selectedPointIndex}`}
+          >
             {(['x', 'y', 'z'] as const).map((axis) => (
               <Field key={axis} label={`${axis.toUpperCase()} (m)`}>
                 <NumberInput
                   step={0.1}
-                  value={Number(point[axis].toFixed(2))}
-                  onChange={(event) => {
+                  defaultValue={Number(point[axis].toFixed(2))}
+                  onBlur={(event) => {
+                    const value = Number(event.target.value);
+                    if (!Number.isFinite(value)) return;
                     const points = trajectory.controlPoints.map((item, index) =>
-                      index === selectedPointIndex
-                        ? { ...item, [axis]: Number(event.target.value) }
-                        : item,
+                      index === selectedPointIndex ? { ...item, [axis]: value } : item,
                     );
                     commit({ controlPoints: points });
                   }}
@@ -209,7 +226,10 @@ function KeyframeInspector({ keyframe }: { keyframe: Keyframe }) {
                 );
                 retime.mutate(
                   { id: keyframe.id, timestampMs },
-                  { onError: (error) => console.error(error) },
+                  {
+                    onSuccess: () => useSaveStatusStore.getState().succeed('Keyframe retimed'),
+                    onError: (error) => useSaveStatusStore.getState().fail(error.message),
+                  },
                 );
               }}
             />
@@ -243,7 +263,9 @@ function KeyframeInspector({ keyframe }: { keyframe: Keyframe }) {
                   onSuccess: () => {
                     usePlayStore.getState().removeKeyframe(keyframe.id);
                     useEditorStore.getState().selectKeyframe(null);
+                    useSaveStatusStore.getState().succeed('Keyframe deleted');
                   },
+                  onError: (error) => useSaveStatusStore.getState().fail(error.message),
                 },
               )
             }
@@ -325,9 +347,29 @@ function PhasesTab() {
     if (!play) return;
     const start = startMs ?? Math.round(useTimelineStore.getState().currentMs);
     const end = endMs ?? start + 1500;
+    const save = useSaveStatusStore.getState();
+    save.begin('Saving phase…');
     createPhase.mutate(
       { playId: play.id, name: name ?? `Phase ${phases.length + 1}`, startMs: start, endMs: end },
-      { onSuccess: (phase) => usePlayStore.getState().addPhase(phase) },
+      {
+        onSuccess: (phase) => {
+          usePlayStore.getState().addPhase(phase);
+          save.succeed('Phase added');
+        },
+        onError: (error) => save.fail(error.message),
+      },
+    );
+  };
+
+  const commit = (
+    id: string,
+    patch: { name?: string; startMs?: number; endMs?: number; coachingNote?: string },
+  ) => {
+    const save = useSaveStatusStore.getState();
+    save.begin();
+    updatePhase.mutate(
+      { id, ...patch },
+      { onSuccess: () => save.succeed(), onError: (error) => save.fail(error.message) },
     );
   };
 
@@ -375,7 +417,7 @@ function PhasesTab() {
                 onBlur={(event) => {
                   const name = event.target.value.trim() || phase.name;
                   usePlayStore.getState().updatePhase(phase.id, { name });
-                  updatePhase.mutate({ id: phase.id, name });
+                  commit(phase.id, { name });
                 }}
               />
             </Field>
@@ -387,7 +429,7 @@ function PhasesTab() {
                   onBlur={(event) => {
                     const startMs = Math.max(0, Number(event.target.value));
                     usePlayStore.getState().updatePhase(phase.id, { startMs });
-                    updatePhase.mutate({ id: phase.id, startMs });
+                    commit(phase.id, { startMs });
                   }}
                 />
               </Field>
@@ -398,7 +440,7 @@ function PhasesTab() {
                   onBlur={(event) => {
                     const endMs = Math.max(1, Number(event.target.value));
                     usePlayStore.getState().updatePhase(phase.id, { endMs });
-                    updatePhase.mutate({ id: phase.id, endMs });
+                    commit(phase.id, { endMs });
                   }}
                 />
               </Field>
@@ -410,7 +452,7 @@ function PhasesTab() {
                 onBlur={(event) => {
                   const coachingNote = event.target.value;
                   usePlayStore.getState().updatePhase(phase.id, { coachingNote });
-                  updatePhase.mutate({ id: phase.id, coachingNote });
+                  commit(phase.id, { coachingNote });
                 }}
               />
             </Field>
@@ -421,7 +463,11 @@ function PhasesTab() {
                 deletePhase.mutate(
                   { id: phase.id },
                   {
-                    onSuccess: () => usePlayStore.getState().removePhase(phase.id),
+                    onSuccess: () => {
+                      usePlayStore.getState().removePhase(phase.id);
+                      useSaveStatusStore.getState().succeed('Phase deleted');
+                    },
+                    onError: (error) => useSaveStatusStore.getState().fail(error.message),
                   },
                 )
               }
@@ -449,6 +495,8 @@ function NotesTab() {
     const play = usePlayStore.getState().play;
     if (!play || !pending || !text.trim()) return;
     const currentMs = Math.round(useTimelineStore.getState().currentMs);
+    const save = useSaveStatusStore.getState();
+    save.begin('Saving note…');
     createAnnotation.mutate(
       {
         playId: play.id,
@@ -465,7 +513,9 @@ function NotesTab() {
           useEditorStore.getState().setTool('select');
           useEditorStore.getState().selectAnnotation(annotation.id);
           setText('');
+          save.succeed('Note added');
         },
+        onError: (error) => save.fail(error.message),
       },
     );
   };
@@ -543,7 +593,13 @@ function NotesTab() {
                   onBlur={(event) => {
                     const visibleFromMs = Math.max(0, Number(event.target.value));
                     usePlayStore.getState().updateAnnotation(annotation.id, { visibleFromMs });
-                    updateAnnotation.mutate({ id: annotation.id, visibleFromMs });
+                    updateAnnotation.mutate(
+                      { id: annotation.id, visibleFromMs },
+                      {
+                        onSuccess: () => useSaveStatusStore.getState().succeed(),
+                        onError: (error) => useSaveStatusStore.getState().fail(error.message),
+                      },
+                    );
                   }}
                 />
               </Field>
@@ -554,7 +610,13 @@ function NotesTab() {
                   onBlur={(event) => {
                     const visibleToMs = Math.max(1, Number(event.target.value));
                     usePlayStore.getState().updateAnnotation(annotation.id, { visibleToMs });
-                    updateAnnotation.mutate({ id: annotation.id, visibleToMs });
+                    updateAnnotation.mutate(
+                      { id: annotation.id, visibleToMs },
+                      {
+                        onSuccess: () => useSaveStatusStore.getState().succeed(),
+                        onError: (error) => useSaveStatusStore.getState().fail(error.message),
+                      },
+                    );
                   }}
                 />
               </Field>
@@ -565,7 +627,13 @@ function NotesTab() {
               onClick={() =>
                 deleteAnnotation.mutate(
                   { id: annotation.id },
-                  { onSuccess: () => usePlayStore.getState().removeAnnotation(annotation.id) },
+                  {
+                    onSuccess: () => {
+                      usePlayStore.getState().removeAnnotation(annotation.id);
+                      useSaveStatusStore.getState().succeed('Note deleted');
+                    },
+                    onError: (error) => useSaveStatusStore.getState().fail(error.message),
+                  },
                 )
               }
             >
@@ -595,6 +663,8 @@ function CameraTab() {
   const create = () => {
     const play = usePlayStore.getState().play;
     if (!play || !pathName.trim()) return;
+    const save = useSaveStatusStore.getState();
+    save.begin('Saving camera path…');
     createPath.mutate(
       { playId: play.id, name: pathName.trim(), keyframes: [] },
       {
@@ -602,7 +672,9 @@ function CameraTab() {
           usePlayStore.getState().addCameraPath(path);
           useEditorStore.getState().selectCameraPath(path.id);
           useCameraStore.getState().setPreviewPath(path.id);
+          save.succeed('Camera path created');
         },
+        onError: (error) => save.fail(error.message),
       },
     );
   };
@@ -618,7 +690,10 @@ function CameraTab() {
     usePlayStore.getState().updateCameraPath(selectedPath.id, { keyframes });
     updatePath.mutate(
       { id: selectedPath.id, keyframes },
-      { onError: (error) => console.error('Could not save camera keyframe', error) },
+      {
+        onSuccess: () => useSaveStatusStore.getState().succeed('Camera key saved'),
+        onError: (error) => useSaveStatusStore.getState().fail(error.message),
+      },
     );
   };
 
@@ -685,7 +760,9 @@ function CameraTab() {
                           usePlayStore.getState().removeCameraPath(path.id);
                           if (previewPathId === path.id) useCameraStore.getState().setPreviewPath(null);
                           if (selectedPathId === path.id) useEditorStore.getState().selectCameraPath(null);
+                          useSaveStatusStore.getState().succeed('Camera path deleted');
                         },
+                        onError: (error) => useSaveStatusStore.getState().fail(error.message),
                       },
                     )
                   }
@@ -718,7 +795,13 @@ function CameraTab() {
                 onBlur={(event) => {
                   const name = event.target.value.trim() || selectedPath.name;
                   usePlayStore.getState().updateCameraPath(selectedPath.id, { name });
-                  updatePath.mutate({ id: selectedPath.id, name });
+                  updatePath.mutate(
+                    { id: selectedPath.id, name },
+                    {
+                      onSuccess: () => useSaveStatusStore.getState().succeed(),
+                      onError: (error) => useSaveStatusStore.getState().fail(error.message),
+                    },
+                  );
                 }}
               />
             </Field>
@@ -741,7 +824,13 @@ function CameraTab() {
                     onClick={() => {
                       const keyframes = selectedPath.keyframes.filter((_, i) => i !== index);
                       usePlayStore.getState().updateCameraPath(selectedPath.id, { keyframes });
-                      updatePath.mutate({ id: selectedPath.id, keyframes });
+                      updatePath.mutate(
+                        { id: selectedPath.id, keyframes },
+                        {
+                          onSuccess: () => useSaveStatusStore.getState().succeed('Camera key deleted'),
+                          onError: (error) => useSaveStatusStore.getState().fail(error.message),
+                        },
+                      );
                     }}
                     className="text-slate-500 hover:text-red-300"
                   >

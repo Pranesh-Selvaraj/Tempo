@@ -18,6 +18,7 @@ import { useCameraStore } from '../../stores/cameraStore';
 import { useEditorStore } from '../../stores/editorStore';
 import { usePlayStore } from '../../stores/playStore';
 import { useRenderQueueStore } from '../../stores/renderQueueStore';
+import { useSaveStatusStore } from '../../stores/saveStatusStore';
 import { Dropdown, menuItemClass } from '../../components/Dropdown';
 import { Button, IconButton } from '../../components/ui';
 
@@ -71,10 +72,10 @@ export function TopBar({
   onOpenRight: () => void;
 }) {
   const play = usePlayStore((state) => state.play);
-  const dirty = usePlayStore((state) => state.dirty);
   const user = useAuthStore((state) => state.user);
   const clearAuth = useAuthStore((state) => state.clear);
   const recording = useEditorStore((state) => state.recordingFrame.active);
+  const saveStatus = useSaveStatusStore((state) => state.status);
   const readyRenders = useRenderQueueStore(
     (state) => state.jobs.filter((job) => job.status === 'done').length,
   );
@@ -94,9 +95,14 @@ export function TopBar({
       return;
     }
     usePlayStore.getState().setPlay({ ...play, name: trimmed });
+    const save = useSaveStatusStore.getState();
+    save.begin('Saving name…');
     updatePlay.mutate(
       { id: play.id, name: trimmed },
-      { onError: (error) => console.error('Could not rename play', error) },
+      {
+        onSuccess: () => save.succeed('Name saved'),
+        onError: (error) => save.fail(error.message),
+      },
     );
   };
 
@@ -130,10 +136,14 @@ export function TopBar({
       <span
         className={cn(
           'chip hidden md:inline-flex',
-          dirty ? 'border-amber-400/30 text-amber-200' : 'border-emerald-400/20 text-emerald-200',
+          saveStatus === 'error' ? 'border-red-400/40 text-red-200' : '',
         )}
       >
-        {dirty ? 'Unsaved edits' : 'All changes saved'}
+        {saveStatus === 'saving'
+          ? 'Saving…'
+          : saveStatus === 'error'
+            ? 'Save failed'
+            : 'All changes saved'}
       </span>
 
       {/* Desktop tools */}

@@ -18,6 +18,7 @@ import { ballPositionAt } from '../../lib/ballPosition';
 import { trpc } from '../../lib/trpc';
 import { useEditorStore } from '../../stores/editorStore';
 import { usePlayStore } from '../../stores/playStore';
+import { useSaveStatusStore } from '../../stores/saveStatusStore';
 import { FRAME_MS, SPEEDS, useTimelineStore } from '../../stores/timelineStore';
 import { Button, IconButton, Select } from '../../components/ui';
 import { PhaseLane } from './PhaseMarkers';
@@ -126,7 +127,8 @@ function KeyframeLane({ durationMs }: { durationMs: number }) {
               retime.mutate(
                 { id: current.id, timestampMs: current.timestampMs },
                 {
-                  onError: (error) => console.error('Could not retime keyframe', error),
+                  onSuccess: () => useSaveStatusStore.getState().succeed('Keyframe retimed'),
+                  onError: (error) => useSaveStatusStore.getState().fail(error.message),
                 },
               );
             }}
@@ -164,6 +166,8 @@ export function Timeline() {
     if (!play || recording) return;
     const timestampMs = Math.round(useTimelineStore.getState().currentMs);
     const ball = ballPositionAt(trajs, kfs, timestampMs);
+    const save = useSaveStatusStore.getState();
+    save.begin('Saving keyframe…');
     upsertKeyframe.mutate(
       {
         playId: play.id,
@@ -176,8 +180,9 @@ export function Timeline() {
         onSuccess: (keyframe) => {
           usePlayStore.getState().upsertKeyframe(keyframe);
           useEditorStore.getState().selectKeyframe(keyframe.id);
+          save.succeed('Keyframe saved');
         },
-        onError: (error) => console.error('Could not save keyframe', error),
+        onError: (error) => save.fail(error.message),
       },
     );
   };
