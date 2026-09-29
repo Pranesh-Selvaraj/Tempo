@@ -14,7 +14,10 @@ export function TimelineSync() {
   useEffect(() => {
     const { keyframes, players } = usePlayStore.getState();
     if (keyframes.length === 0) return;
-    usePlayStore.getState().setPlayers(interpolatePlayerStates(keyframes, currentMs, players));
+    usePlayStore.getState().setPlayers(interpolatePlayerStates(keyframes, currentMs, players), {
+      // Playhead-driven animation must not fill the undo stack.
+      silent: true,
+    });
   }, [currentMs]);
 
   return null;

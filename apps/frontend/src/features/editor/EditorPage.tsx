@@ -19,6 +19,7 @@ import { LeftPanel } from './LeftPanel';
 import { RightPanel } from './RightPanel';
 import { TopBar } from './TopBar';
 import { useDeleteSelection } from './useEditorActions';
+import { useEditorHistory } from './useEditorHistory';
 
 export function EditorPage() {
   const { playId } = useParams<{ playId: string }>();
@@ -32,6 +33,7 @@ export function EditorPage() {
   const recording = recordingFrame.active;
   const recordKeyframe = useRecordKeyframe();
   const deleteSelection = useDeleteSelection();
+  const history = useEditorHistory();
   useRenderQueueProcessor();
 
   const query = trpc.play.get.useQuery(
@@ -65,6 +67,19 @@ export function EditorPage() {
       }
       const timeline = useTimelineStore.getState();
       const duration = usePlayStore.getState().durationMs;
+      const modifier = event.ctrlKey || event.metaKey;
+      const key = event.key.toLowerCase();
+      if (modifier && key === 'z') {
+        event.preventDefault();
+        if (event.shiftKey) history.redo();
+        else history.undo();
+        return;
+      }
+      if (modifier && key === 'y') {
+        event.preventDefault();
+        history.redo();
+        return;
+      }
       switch (event.key) {
         case ' ':
           event.preventDefault();
@@ -97,7 +112,7 @@ export function EditorPage() {
           break;
       }
     },
-    [deleteSelection, recordKeyframe],
+    [deleteSelection, history, recordKeyframe],
   );
 
   useEffect(() => {
@@ -189,7 +204,16 @@ export function EditorPage() {
         )}
       </div>
 
-      {!recording && <div className="h-44 shrink-0"><Timeline /></div>}
+      {!recording && (
+        <div className="h-44 shrink-0">
+          <Timeline
+            onUndo={history.undo}
+            onRedo={history.redo}
+            canUndo={history.canUndo}
+            canRedo={history.canRedo}
+          />
+        </div>
+      )}
 
       <ExportDialog open={exportOpen} onClose={() => setExportOpen(false)} />
     </div>

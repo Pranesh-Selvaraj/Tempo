@@ -42,12 +42,16 @@ interface PlayState {
   players: PlayerState[];
   durationMs: number;
   dirty: boolean;
+  past: PlaySnapshot[];
+  future: PlaySnapshot[];
+  historyTag: string | null;
+  historyAt: number;
 
   loadDetail: (detail: PlayDetail) => void;
   reset: () => void;
   setPlay: (play: Play) => void;
   setDuration: (durationMs: number) => void;
-  setPlayers: (players: PlayerState[]) => void;
+  setPlayers: (players: PlayerState[], options?: { silent?: boolean }) => void;
   updatePlayer: (playerId: string, patch: Partial<PlayerState>) => void;
   setPlayerPose: (playerId: string, pose: PlayerState['pose']) => void;
   setKeyframes: (keyframes: Keyframe[]) => void;
@@ -70,6 +74,34 @@ interface PlayState {
   updateCameraPath: (id: string, patch: Partial<CameraPath>) => void;
   removeCameraPath: (id: string) => void;
   markDirty: (dirty?: boolean) => void;
+
+  /** Editor undo/redo support. */
+  beginHistory: (tag?: string) => void;
+  captureSnapshot: () => PlaySnapshot;
+  applySnapshot: (snapshot: PlaySnapshot) => void;
+  clearHistory: () => void;
+}
+
+export interface PlaySnapshot {
+  players: PlayerState[];
+  keyframes: Keyframe[];
+  trajectories: Trajectory[];
+  phases: Phase[];
+  annotations: Annotation[];
+  cameraPaths: CameraPath[];
+  durationMs: number;
+}
+
+function snapshotOf(state: PlaySnapshot): PlaySnapshot {
+  return structuredClone({
+    players: state.players,
+    keyframes: state.keyframes,
+    trajectories: state.trajectories,
+    phases: state.phases,
+    annotations: state.annotations,
+    cameraPaths: state.cameraPaths,
+    durationMs: state.durationMs,
+  });
 }
 
 const emptyState = {
@@ -82,9 +114,13 @@ const emptyState = {
   players: [] as PlayerState[],
   durationMs: 6000,
   dirty: false,
+  past: [] as PlaySnapshot[],
+  future: [] as PlaySnapshot[],
+  historyTag: null as string | null,
+  historyAt: 0,
 };
 
-export const usePlayStore = create<PlayState>((set) => ({
+export const usePlayStore = create<PlayState>((set, get) => ({
   ...emptyState,
 
   loadDetail: (detail) => {
@@ -112,6 +148,11 @@ export const usePlayStore = create<PlayState>((set) => ({
         detail.keyframes.reduce((max, k) => Math.max(max, k.timestampMs), 0) + 1000,
       ),
       dirty: false,
+      // A fresh play starts with a clean history.
+      past: [],
+      future: [],
+      historyTag: null,
+      historyAt: 0,
     });
   },
 
@@ -121,67 +162,139 @@ export const usePlayStore = create<PlayState>((set) => ({
   setDuration: (durationMs) =>
     set({ durationMs: Number.isFinite(durationMs) ? Math.max(1000, durationMs) : 6000 }),
 
-  setPlayers: (players) => set({ players }),
-  updatePlayer: (playerId, patch) =>
+  setPlayers: (players, options) => {
+    if (!options?.silent) get().beginHistory();
+    set({ players });
+  },
+  updatePlayer: (playerId, patch) => {
+    get().beginHistory(`player:${playerId}`);
     set((state) => ({
       players: state.players.map((player) =>
         player.playerId === playerId ? { ...player, ...patch } : player,
       ),
-    })),
-  setPlayerPose: (playerId, pose) =>
+    }));
+  },
+  setPlayerPose: (playerId, pose) => {
+    get().beginHistory(`pose:${playerId}`);
     set((state) => ({
       players: state.players.map((player) =>
         player.playerId === playerId ? { ...player, pose } : player,
       ),
-    })),
+    }));
+  },
 
-  setKeyframes: (keyframes) => set({ keyframes }),
-  upsertKeyframe: (keyframe) =>
+  setKeyframes: (keyframes) => {
+    get().beginHistory('keyframes');
+    set({ keyframes });
+  },
+  upsertKeyframe: (keyframe) => {
+    get().beginHistory();
     set((state) => {
       const next = state.keyframes.filter((k) => k.id !== keyframe.id && k.timestampMs !== keyframe.timestampMs);
       next.push(keyframe);
       next.sort((a, b) => a.timestampMs - b.timestampMs);
       return { keyframes: next, dirty: true };
-    }),
-  removeKeyframe: (id) =>
-    set((state) => ({ keyframes: state.keyframes.filter((k) => k.id !== id), dirty: true })),
+    });
+  },
+  removeKeyframe: (id) => {
+    get().beginHistory();
+    set((state) => ({ keyframes: state.keyframes.filter((k) => k.id !== id), dirty: true }));
+  },
 
   setTrajectories: (trajectories) => set({ trajectories }),
-  addTrajectory: (trajectory) => set((state) => ({ trajectories: [...state.trajectories, trajectory] })),
-  updateTrajectory: (id, patch) =>
+  addTrajectory: (trajectory) => {
+    get().beginHistory();
+    set((state) => ({ trajectories: [...state.trajectories, trajectory] }));
+  },
+  updateTrajectory: (id, patch) => {
+    get().beginHistory(`trajectory:${id}`);
     set((state) => ({
       trajectories: state.trajectories.map((t) => (t.id === id ? { ...t, ...patch } : t)),
-    })),
-  removeTrajectory: (id) =>
-    set((state) => ({ trajectories: state.trajectories.filter((t) => t.id !== id) })),
+    }));
+  },
+  removeTrajectory: (id) => {
+    get().beginHistory();
+    set((state) => ({ trajectories: state.trajectories.filter((t) => t.id !== id) }));
+  },
 
   setPhases: (phases) => set({ phases }),
-  addPhase: (phase) => set((state) => ({ phases: [...state.phases, phase].sort((a, b) => a.startMs - b.startMs) })),
-  updatePhase: (id, patch) =>
+  addPhase: (phase) => {
+    get().beginHistory();
+    set((state) => ({ phases: [...state.phases, phase].sort((a, b) => a.startMs - b.startMs) }));
+  },
+  updatePhase: (id, patch) => {
+    get().beginHistory(`phase:${id}`);
     set((state) => ({
       phases: state.phases
         .map((p) => (p.id === id ? { ...p, ...patch } : p))
         .sort((a, b) => a.startMs - b.startMs),
-    })),
-  removePhase: (id) => set((state) => ({ phases: state.phases.filter((p) => p.id !== id) })),
+    }));
+  },
+  removePhase: (id) => {
+    get().beginHistory();
+    set((state) => ({ phases: state.phases.filter((p) => p.id !== id) }));
+  },
 
   setAnnotations: (annotations) => set({ annotations }),
-  addAnnotation: (annotation) => set((state) => ({ annotations: [...state.annotations, annotation] })),
-  updateAnnotation: (id, patch) =>
+  addAnnotation: (annotation) => {
+    get().beginHistory();
+    set((state) => ({ annotations: [...state.annotations, annotation] }));
+  },
+  updateAnnotation: (id, patch) => {
+    get().beginHistory(`annotation:${id}`);
     set((state) => ({
       annotations: state.annotations.map((a) => (a.id === id ? { ...a, ...patch } : a)),
-    })),
-  removeAnnotation: (id) =>
-    set((state) => ({ annotations: state.annotations.filter((a) => a.id !== id) })),
+    }));
+  },
+  removeAnnotation: (id) => {
+    get().beginHistory();
+    set((state) => ({ annotations: state.annotations.filter((a) => a.id !== id) }));
+  },
 
   setCameraPaths: (cameraPaths) => set({ cameraPaths }),
-  addCameraPath: (cameraPath) => set((state) => ({ cameraPaths: [...state.cameraPaths, cameraPath] })),
-  updateCameraPath: (id, patch) =>
+  addCameraPath: (cameraPath) => {
+    get().beginHistory();
+    set((state) => ({ cameraPaths: [...state.cameraPaths, cameraPath] }));
+  },
+  updateCameraPath: (id, patch) => {
+    get().beginHistory(`camera:${id}`);
     set((state) => ({
       cameraPaths: state.cameraPaths.map((p) => (p.id === id ? { ...p, ...patch } : p)),
-    })),
-  removeCameraPath: (id) =>
-    set((state) => ({ cameraPaths: state.cameraPaths.filter((p) => p.id !== id) })),
+    }));
+  },
+  removeCameraPath: (id) => {
+    get().beginHistory();
+    set((state) => ({ cameraPaths: state.cameraPaths.filter((p) => p.id !== id) }));
+  },
 
   markDirty: (dirty = true) => set({ dirty }),
+
+  beginHistory: (tag) =>
+    set((state) => {
+      const now = Date.now();
+      const coalesce =
+        tag !== undefined && state.historyTag === tag && now - state.historyAt < 1000;
+      if (coalesce) return { historyAt: now };
+      return {
+        past: [...state.past.slice(-59), snapshotOf(state)],
+        future: [],
+        historyTag: tag ?? null,
+        historyAt: now,
+      };
+    }),
+
+  captureSnapshot: () => snapshotOf(get()),
+
+  applySnapshot: (snapshot) =>
+    set({
+      players: structuredClone(snapshot.players),
+      keyframes: structuredClone(snapshot.keyframes),
+      trajectories: structuredClone(snapshot.trajectories),
+      phases: structuredClone(snapshot.phases),
+      annotations: structuredClone(snapshot.annotations),
+      cameraPaths: structuredClone(snapshot.cameraPaths),
+      durationMs: snapshot.durationMs,
+    }),
+
+  clearHistory: () => set({ past: [], future: [], historyTag: null, historyAt: 0 }),
 }));

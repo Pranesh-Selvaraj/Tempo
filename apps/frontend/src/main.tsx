@@ -2,14 +2,12 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { httpBatchLink } from '@trpc/client';
-import superjson from 'superjson';
 import './styles/globals.css';
 import { App } from './App';
-import { bootstrapDemo, demoLink } from './demo';
+import { bootstrapDemo } from './demo';
 import { DEMO_MODE } from './lib/mode';
-import { TRPC_URL, trpc, type AppRouter } from './lib/trpc';
-import { getStoredToken } from './stores/authStore';
+import { trpcClient } from './lib/client';
+import { trpc } from './lib/trpc';
 
 if (DEMO_MODE) {
   // Seed the local database and sign in the demo coach before React mounts.
@@ -24,24 +22,6 @@ const queryClient = new QueryClient({
     },
   },
 });
-
-const trpcClient = DEMO_MODE
-  ? trpc.createClient({
-      transformer: superjson,
-      links: [demoLink<AppRouter>()],
-    })
-  : trpc.createClient({
-      transformer: superjson,
-      links: [
-        httpBatchLink({
-          url: TRPC_URL,
-          headers() {
-            const token = getStoredToken();
-            return token ? { authorization: `Bearer ${token}` } : {};
-          },
-        }),
-      ],
-    });
 
 function Root() {
   return (

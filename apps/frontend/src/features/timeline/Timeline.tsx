@@ -4,8 +4,10 @@ import {
   ChevronRight,
   Pause,
   Play,
+  Redo2,
   Repeat,
   SkipBack,
+  Undo2,
   Video,
 } from 'lucide-react';
 import {
@@ -147,7 +149,17 @@ function KeyframeLane({ durationMs }: { durationMs: number }) {
   );
 }
 
-export function Timeline() {
+export function Timeline({
+  onUndo,
+  onRedo,
+  canUndo = false,
+  canRedo = false,
+}: {
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
+} = {}) {
   const durationMs = usePlayStore((state) => state.durationMs);
   const setDuration = usePlayStore((state) => state.setDuration);
   const phases = usePlayStore((state) => state.phases);
@@ -220,6 +232,13 @@ export function Timeline() {
           <Repeat className="h-3.5 w-3.5" />
         </IconButton>
 
+        <IconButton title="Undo (Ctrl+Z)" onClick={onUndo} disabled={!canUndo}>
+          <Undo2 className="h-3.5 w-3.5" />
+        </IconButton>
+        <IconButton title="Redo (Ctrl+Shift+Z)" onClick={onRedo} disabled={!canRedo}>
+          <Redo2 className="h-3.5 w-3.5" />
+        </IconButton>
+
         <Select
           value={String(speed)}
           onChange={(event) => setSpeed(Number(event.target.value) as (typeof SPEEDS)[number])}
@@ -284,7 +303,8 @@ export function Timeline() {
         </Scrubber>
       </div>
       <p className="text-[10px] text-slate-500">
-        Space play/pause · ←/→ step {Math.round(FRAME_MS)} ms · K record keyframe · drag keyframes to retime
+        Space play/pause · ←/→ step {Math.round(FRAME_MS)} ms · K record keyframe · drag keyframes to retime ·
+        Ctrl+Z undo
       </p>
     </div>
   );
