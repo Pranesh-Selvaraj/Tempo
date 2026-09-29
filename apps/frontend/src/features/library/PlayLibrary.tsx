@@ -274,13 +274,20 @@ export function PlayLibrary() {
   const lockMaster = useMasterStore((state) => state.lock);
   const startTour = useTourStore((state) => state.start);
 
-  const list = trpc.play.list.useQuery(category === 'all' ? {} : { category });
+  const list = trpc.play.list.useQuery({});
   const plays = list.data ?? [];
   const filteredPlays = useMemo(() => {
     const term = query.trim().toLowerCase();
-    if (!term) return plays;
-    return plays.filter((play) => play.name.toLowerCase().includes(term));
-  }, [plays, query]);
+    return plays.filter((play) => {
+      if (category !== 'all' && play.category !== category) return false;
+      return !term || play.name.toLowerCase().includes(term);
+    });
+  }, [plays, query, category]);
+  const emptyListMessage = query.trim()
+    ? 'No plays match that search.'
+    : category === 'all'
+      ? 'No plays yet.'
+      : `No ${PLAY_CATEGORY_LABELS[category]} plays yet — pick another category or create one.`;
 
   return (
     <div className="scroll-thin h-full overflow-y-auto">
@@ -451,7 +458,7 @@ export function PlayLibrary() {
                     <p className="py-10 text-center text-sm text-red-300">{list.error.message}</p>
                   ) : filteredPlays.length === 0 ? (
                     <p className="py-10 text-center text-sm text-slate-500">
-                      No plays match that search.
+                      {emptyListMessage}
                     </p>
                   ) : (
                     <div className="grid gap-3 sm:grid-cols-2">
