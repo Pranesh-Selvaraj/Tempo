@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import type {
   ButtonHTMLAttributes,
   InputHTMLAttributes,
@@ -214,7 +215,9 @@ export function Modal({
   size?: 'sm' | 'md' | 'lg';
 }) {
   if (!open) return null;
-  return (
+  // Portal to the body: fixed overlays inside backdrop-blurred panels would
+  // otherwise be positioned relative to that panel instead of the viewport.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
       <div
         className={cn(
@@ -233,6 +236,7 @@ export function Modal({
         <div className="scroll-thin flex-1 overflow-y-auto p-4">{children}</div>
         {footer && <footer className="flex justify-end gap-2 border-t border-white/5 p-3">{footer}</footer>}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

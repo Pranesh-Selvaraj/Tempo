@@ -234,7 +234,9 @@ export const useQuickStore = create<QuickState>((set, get) => ({
     useTimelineStore.getState().reset();
     useEditorStore.getState().setTool('select');
     useEditorStore.getState().setDragEnabled(true);
-    set({ ...initialState, customFormations: readCustomFormations(), active: true, rotation });
+    // Keep the court visible on phones: the roster starts collapsed there.
+    const rosterOpen = typeof window === 'undefined' ? true : window.innerWidth >= 1024;
+    set({ ...initialState, customFormations: readCustomFormations(), active: true, rotation, rosterOpen });
   },
 
   stop: () => {
