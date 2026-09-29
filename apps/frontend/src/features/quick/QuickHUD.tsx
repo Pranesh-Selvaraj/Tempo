@@ -96,6 +96,16 @@ function RoleAssignments() {
     { key: 'spiker', label: 'Spiker' },
   ] as const;
 
+  const choose = (kind: (typeof kinds)[number]['key'], playerId: string | null) => {
+    if (playerId) {
+      // A player can only hold one role; clear them from any other pick.
+      for (const other of kinds) {
+        if (other.key !== kind && roles[other.key] === playerId) setRole(other.key, null);
+      }
+    }
+    setRole(kind, playerId);
+  };
+
   return (
     <div className="flex flex-wrap items-center gap-2">
       <span className="text-[10px] uppercase tracking-wide text-slate-500">Who plays</span>
@@ -104,12 +114,18 @@ function RoleAssignments() {
           {label}
           <Select
             value={roles[key] ?? ''}
-            onChange={(event) => setRole(key, event.target.value || null)}
+            onChange={(event) => choose(key, event.target.value || null)}
             className="h-7 w-28 py-0 text-[11px]"
           >
             <option value="">Auto</option>
             {home.map((player) => (
-              <option key={player.playerId} value={player.playerId}>
+              <option
+                key={player.playerId}
+                value={player.playerId}
+                disabled={kinds.some(
+                  (other) => other.key !== key && roles[other.key] === player.playerId,
+                )}
+              >
                 #{player.playerId.replace(/\D/g, '')} · {ROLE_LABELS[player.role]}
               </option>
             ))}
