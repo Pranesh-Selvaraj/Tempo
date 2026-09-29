@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { Button } from '../components/ui';
+import { DEMO_MODE } from '../lib/mode';
 import { TOUR_DONE_KEY, useTourStore } from './tourStore';
 
 interface TourStep {
@@ -13,8 +14,9 @@ interface TourStep {
 const STEPS: TourStep[] = [
   {
     title: 'Welcome to Tempo',
-    body:
-      'Tempo is a 3D volleyball play designer. You build plays on a real court, choreograph the ball and camera, then teach them from any device. Everything you make in this preview is saved in this browser only.',
+    body: DEMO_MODE
+      ? 'Tempo is a 3D volleyball play designer. You build plays on a real court, choreograph the ball and camera, then teach them from any device. Everything you make in this preview is saved in this browser only.'
+      : 'Tempo is a 3D volleyball play designer. You build plays on a real court, choreograph the ball and camera, then teach them from any device. Your plays are saved to your own server.',
   },
   {
     title: 'Your play library',
@@ -39,8 +41,9 @@ const STEPS: TourStep[] = [
   },
   {
     title: 'Record and share',
-    body:
-      'Export a play as MP4, GIF or a 3D model straight from the browser — nothing is uploaded in this preview. Download it or use your device share sheet to send it to the team.',
+    body: DEMO_MODE
+      ? 'Export a play as MP4, GIF or a 3D model straight from the browser — nothing is uploaded in this preview. Download it or use your device share sheet to send it to the team.'
+      : 'Export a play as MP4, GIF or a 3D model straight from the browser. Download it or use your device share sheet to send it to the team.',
   },
   {
     title: 'Run the match',
