@@ -127,7 +127,7 @@ export function QuickPlayPage() {
           <ArrowLeft className="h-3.5 w-3.5" />
           Library
         </Link>
-        <div className="panel pointer-events-auto flex items-center gap-2 px-3 py-1.5">
+        <div className="panel pointer-events-auto hidden items-center gap-2 px-3 py-1.5 sm:flex">
           <MousePointerClick className="h-3.5 w-3.5 text-sky-300" />
           <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
             Interactive play
@@ -142,12 +142,12 @@ export function QuickPlayPage() {
           <Users className="h-3.5 w-3.5" />
           Roster
         </Button>
-        <div className="pointer-events-auto ml-auto flex items-center gap-2">
+        <div className="pointer-events-auto ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">
           <TextInput
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder="Name your play…"
-            className="w-52"
+            className="w-40 sm:w-52"
           />
           <Select
             value={String(rotation)}
