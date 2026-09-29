@@ -219,6 +219,9 @@ The full-stack version is unchanged: omit `VITE_DEMO_MODE` (or run `pnpm dev`) a
 - **Player models**: drop licensed Mixamo `.glb` files into `apps/frontend/public/models/` (gitignored) and select
   them in the editor's Player model panel — see the Player models section above. The procedural mannequins remain the
   zero-asset default and the fallback for broken/missing models.
+- **Releases**: production deploys are gated by the `production` branch — every other branch
+  (including `integration/next`) gets a preview URL to review first. See
+  [`docs/operations/releasing.md`](docs/operations/releasing.md).
 - **Recording storage**: `POST /api/upload?filename=…` (raw body + JWT) writes to `apps/backend/uploads/` and returns a
   public URL. Set `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` and `R2_PUBLIC_URL` to store
   recordings in Cloudflare R2 instead — signing is implemented with `node:crypto` (AWS SigV4) and needs no SDK.
