@@ -1100,6 +1100,7 @@ export function ScorecardPage() {
   const setTeamName = useScorecardStore((state) => state.setTeamName);
   const setMatchType = useScorecardStore((state) => state.setMatchType);
   const reset = useScorecardStore((state) => state.reset);
+  const archiveMatch = useScorecardStore((state) => state.archiveMatch);
   const toggleClock = useScorecardStore((state) => state.toggleClock);
   const resetClock = useScorecardStore((state) => state.resetClock);
   const clearTimeoutTimer = useScorecardStore((state) => state.clearTimeoutTimer);
@@ -1111,6 +1112,7 @@ export function ScorecardPage() {
   const sub = useScorecardStore((state) => state.sub);
   const [rosterOpen, setRosterOpen] = useState(false);
   const [subSide, setSubSide] = useState<TeamSide | null>(null);
+  const [resetOpen, setResetOpen] = useState(false);
 
   const now = useTicker(
     match.clock.running || match.timeoutTimer.endsAt !== null || match.countdown.running,
@@ -1200,7 +1202,7 @@ export function ScorecardPage() {
           <Button onClick={finishSet} disabled={Boolean(match.winner)}>
             Finish set
           </Button>
-          <Button variant="danger" onClick={reset}>
+          <Button variant="danger" onClick={() => setResetOpen(true)}>
             <RotateCcw className="h-3.5 w-3.5" />
             Reset match
           </Button>
@@ -1257,7 +1259,7 @@ export function ScorecardPage() {
                   className={menuItemClass}
                   onClick={() => {
                     close();
-                    reset();
+                    setResetOpen(true);
                   }}
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
@@ -1481,6 +1483,35 @@ export function ScorecardPage() {
 
       <RosterSetupModal open={rosterOpen} onClose={() => setRosterOpen(false)} />
       <SubstitutionModal side={subSide} onClose={() => setSubSide(null)} />
+      <Modal open={resetOpen} onClose={() => setResetOpen(false)} title="Reset match?" size="sm">
+        <p className="text-xs leading-relaxed text-slate-300">
+          Scores, rotations, timeouts, substitutions and lineups will be cleared. Team names,
+          match type and formations are kept. Archive the match first if you want a record of it
+          in match history.
+        </p>
+        <div className="mt-4 flex flex-wrap justify-end gap-2">
+          <Button onClick={() => setResetOpen(false)}>Cancel</Button>
+          <Button
+            variant="danger"
+            onClick={() => {
+              reset();
+              setResetOpen(false);
+            }}
+          >
+            Reset anyway
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => {
+              archiveMatch();
+              reset();
+              setResetOpen(false);
+            }}
+          >
+            Archive &amp; reset
+          </Button>
+        </div>
+      </Modal>
       <MatchReport match={match} />
     </div>
   );
