@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Box,
   CircleDot,
@@ -34,6 +34,7 @@ import { guessClip } from '../../lib/playerModel';
 import { trpc } from '../../lib/trpc';
 import { useModelStore } from '../../stores/modelStore';
 import { basePlayersFor, usePlayStore } from '../../stores/playStore';
+import { useSaveStatusStore } from '../../stores/saveStatusStore';
 import { useEditorStore, type EditorTool } from '../../stores/editorStore';
 import { useTimelineStore } from '../../stores/timelineStore';
 import { Button, Field, NumberInput, Panel, Segmented, Select, TextArea, Toggle } from '../../components/ui';
@@ -68,6 +69,8 @@ function DrawPanel() {
     const play = usePlayStore.getState().play;
     if (!play || draftPoints.length < 2) return;
     const startMs = Math.round(useTimelineStore.getState().currentMs);
+    const save = useSaveStatusStore.getState();
+    save.begin('Saving ball path…');
     createTrajectory.mutate(
       {
         playId: play.id,
@@ -85,8 +88,9 @@ function DrawPanel() {
           editor.setTool('select');
           editor.clearDraft();
           editor.selectTrajectory(trajectory.id);
+          save.succeed('Ball path added');
         },
-        onError: (error) => console.error('Could not save trajectory', error),
+        onError: (error) => save.fail(error.message),
       },
     );
   };
@@ -317,6 +321,16 @@ function ViewToggles() {
 function PlayDetails() {
   const play = usePlayStore((state) => state.play);
   const updatePlay = trpc.play.update.useMutation();
+  const [description, setDescription] = useState(play?.description ?? '');
+  const [coachingNotes, setCoachingNotes] = useState(play?.coachingNotes ?? '');
+
+  useEffect(() => {
+    setDescription(play?.description ?? '');
+    setCoachingNotes(play?.coachingNotes ?? '');
+    // Reset the drafts when a different play is loaded.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [play?.id]);
+
   if (!play) return null;
 
   const patch = (
@@ -335,10 +349,25 @@ function PlayDetails() {
     > & { formation?: Formation; libero?: boolean },
   ) => {
     usePlayStore.getState().setPlay({ ...play, ...values });
+    const save = useSaveStatusStore.getState();
+    save.begin();
     updatePlay.mutate(
       { id: play.id, ...values },
-      { onError: (error) => console.error('Could not update play', error) },
+      {
+        onSuccess: () => save.succeed(),
+        onError: (error) => save.fail(error.message),
+      },
     );
+  };
+
+  const commitDescription = () => {
+    if (description === (play.description ?? '')) return;
+    patch({ description });
+  };
+
+  const commitCoachingNotes = () => {
+    if (coachingNotes === (play.coachingNotes ?? '')) return;
+    patch({ coachingNotes });
   };
 
   return (
@@ -373,8 +402,11 @@ function PlayDetails() {
           <Field label="Net height (m)">
             <NumberInput
               step={0.01}
-              value={play.netHeight}
-              onChange={(event) => patch({ netHeight: Number(event.target.value) })}
+              defaultValue={play.netHeight}
+              onBlur={(event) => {
+                const netHeight = Number(event.target.value);
+                if (Number.isFinite(netHeight) && netHeight !== play.netHeight) patch({ netHeight });
+              }}
             />
           </Field>
         </div>
@@ -435,29 +467,39 @@ function PlayDetails() {
 
         <Field label="Description">
           <TextArea
-            value={play.description ?? ''}
+            value={description}
             placeholder="What is this play for?"
-            onChange={(event) => patch({ description: event.target.value })}
+            onChange={(event) => setDescription(event.target.value)}
+            onBlur={commitDescription}
           />
         </Field>
 
         <Field label="Coaching notes">
           <TextArea
-            value={play.coachingNotes ?? ''}
+            value={coachingNotes}
             placeholder="Keys, reads, reminders for the team"
-            onChange={(event) => patch({ coachingNotes: event.target.value })}
+            onChange={(event) => setCoachingNotes(event.target.value)}
+            onBlur={commitCoachingNotes}
           />
         </Field>
 
         <Toggle
           checked={play.isPublic}
           label="Public share link"
-          onChange={(value) =>
+          onChange={(value) => {
+            const save = useSaveStatusStore.getState();
+            save.begin();
             updatePlay.mutate(
               { id: play.id, isPublic: value },
-              { onSuccess: (updated) => usePlayStore.getState().setPlay(updated) },
-            )
-          }
+              {
+                onSuccess: (updated) => {
+                  usePlayStore.getState().setPlay(updated);
+                  save.succeed();
+                },
+                onError: (error) => save.fail(error.message),
+              },
+            );
+          }}
         />
       </div>
     </Panel>

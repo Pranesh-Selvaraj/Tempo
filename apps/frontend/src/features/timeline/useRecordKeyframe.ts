@@ -3,6 +3,7 @@ import { ballPositionAt } from '../../lib/ballPosition';
 import { trpc } from '../../lib/trpc';
 import { useEditorStore } from '../../stores/editorStore';
 import { usePlayStore } from '../../stores/playStore';
+import { useSaveStatusStore } from '../../stores/saveStatusStore';
 import { useTimelineStore } from '../../stores/timelineStore';
 
 /** Snapshot the current roster + ball into a keyframe at the playhead. */
@@ -14,6 +15,8 @@ export function useRecordKeyframe() {
     if (!play || useEditorStore.getState().recordingFrame.active) return;
     const timestampMs = Math.round(useTimelineStore.getState().currentMs);
     const ball = ballPositionAt(trajectories, keyframes, timestampMs);
+    const save = useSaveStatusStore.getState();
+    save.begin('Saving keyframe…');
     upsert.mutate(
       {
         playId: play.id,
@@ -26,8 +29,9 @@ export function useRecordKeyframe() {
         onSuccess: (keyframe) => {
           usePlayStore.getState().upsertKeyframe(keyframe);
           useEditorStore.getState().selectKeyframe(keyframe.id);
+          save.succeed('Keyframe saved');
         },
-        onError: (error) => console.error('Could not record keyframe', error),
+        onError: (error) => save.fail(error.message),
       },
     );
   }, [upsert]);
