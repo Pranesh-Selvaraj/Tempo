@@ -505,6 +505,8 @@ function ShortcutHelp() {
 
 export function QuickHUD() {
   const step = useQuickStore((state) => state.step);
+  const selectedTarget = useQuickStore((state) => state.selectedTarget);
+  const ballTargetCount = useQuickStore((state) => state.ballTargets.length);
   const [collapsed, setCollapsed] = useState(() => {
     try {
       return sessionStorage.getItem(HUD_COLLAPSED_KEY) === '1';
@@ -532,6 +534,11 @@ export function QuickHUD() {
 
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center p-3">
+      <p className="sr-only" aria-live="polite">
+        {QUICK_STEP_LABELS[step]}
+        {selectedTarget !== null ? `, target ${selectedTarget + 1} selected` : ''}
+        {step === 'ball' ? `, ${ballTargetCount} of 3 ball targets placed` : ''}
+      </p>
       <div className="panel pointer-events-auto w-full max-w-3xl space-y-3 p-3">
         <div className="flex items-center gap-1">
           <StepChips />

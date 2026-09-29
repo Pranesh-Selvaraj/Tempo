@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type {
   ButtonHTMLAttributes,
@@ -35,9 +35,18 @@ export function Button({
 export function IconButton({
   variant = 'ghost',
   className,
+  title,
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant }) {
-  return <Button variant={variant} className={cn('btn-icon', className)} {...props} />;
+  return (
+    <Button
+      variant={variant}
+      className={cn('btn-icon', className)}
+      title={title}
+      aria-label={props['aria-label'] ?? (typeof title === 'string' ? title : undefined)}
+      {...props}
+    />
+  );
 }
 
 export function Panel({
@@ -214,12 +223,59 @@ export function Modal({
   footer?: ReactNode;
   size?: 'sm' | 'md' | 'lg';
 }) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const previousFocus = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    previousFocus.current = document.activeElement as HTMLElement | null;
+    const panel = panelRef.current;
+    const focusables = () =>
+      panel
+        ? Array.from(
+            panel.querySelectorAll<HTMLElement>(
+              'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])',
+            ),
+          )
+        : [];
+    focusables()[0]?.focus();
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        onClose();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const items = focusables();
+      if (items.length === 0) return;
+      const first = items[0]!;
+      const last = items[items.length - 1]!;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      previousFocus.current?.focus?.();
+    };
+  }, [open, onClose]);
+
   if (!open) return null;
   // Portal to the body: fixed overlays inside backdrop-blurred panels would
   // otherwise be positioned relative to that panel instead of the viewport.
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
       <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={typeof title === 'string' ? title : 'Dialog'}
         className={cn(
           'panel flex max-h-[90vh] w-full flex-col',
           size === 'sm' && 'max-w-sm',

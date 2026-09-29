@@ -70,7 +70,8 @@ export function Scene({ editing = true, quick = false }: { editing?: boolean; qu
   }, [editing, setEditing]);
 
   return (
-    <Canvas
+    <div className="h-full w-full" role="img" aria-label="3D volleyball court, players and ball paths">
+      <Canvas
       shadows
       dpr={[1, 1.75]}
       frameloop={renderJobActive ? 'never' : 'always'}
@@ -115,6 +116,7 @@ export function Scene({ editing = true, quick = false }: { editing?: boolean; qu
         maxDistance={60}
       />
       <Effects />
-    </Canvas>
+      </Canvas>
+    </div>
   );
 }
