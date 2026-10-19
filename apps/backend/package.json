@@ -16,16 +16,16 @@
     "demo": "tsx src/scripts/demo.ts"
   },
   "dependencies": {
-    "@electric-sql/pglite": "^0.5.8",
+    "@electric-sql/pglite": "^0.5.10",
     "@tempo/shared-types": "workspace:*",
     "@trpc/server": "10.45.4",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
-    "drizzle-orm": "^0.45.2",
+    "drizzle-orm": "^0.45.4",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
-    "pg": "^8.13.1",
+    "pg": "^8.23.1",
     "superjson": "^2.2.1",
     "zod": "^3.25.76"
   },
@@ -35,8 +35,8 @@
     "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^22.10.2",
     "@types/pg": "^8.11.10",
-    "drizzle-kit": "^0.31.10",
-    "tsx": "^4.19.2",
+    "drizzle-kit": "^0.31.11",
+    "tsx": "^4.23.15",
     "typescript": "^5.9.3"
   }
 }
